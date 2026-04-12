@@ -26,7 +26,6 @@ export async function updateSession(request: NextRequest) {
   );
 
   // Do not put any code between createServerClient and getUser().
-  // A simple mistake here causes random logouts.
   await supabase.auth.getUser();
 
   return supabaseResponse;

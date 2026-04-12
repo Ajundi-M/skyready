@@ -1,7 +1,25 @@
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
+import { createClient } from '@/lib/supabase/server';
 import { signup } from './actions';
 
-export default function SignupPage() {
+export default async function SignupPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (user) {
+    redirect('/dashboard');
+  }
+
+  const params = await searchParams;
+  const errorMessage = params.error;
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-background">
       <div className="w-full max-w-sm space-y-6 rounded-lg border p-8 shadow-sm">
@@ -9,6 +27,15 @@ export default function SignupPage() {
           <h1 className="text-2xl font-bold">SkyReady</h1>
           <p className="text-sm text-muted-foreground">Create your account</p>
         </div>
+
+        {errorMessage ? (
+          <p
+            className="rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-center text-sm text-destructive"
+            role="alert"
+          >
+            {errorMessage}
+          </p>
+        ) : null}
 
         <form className="space-y-4">
           <div className="space-y-2">
@@ -20,6 +47,7 @@ export default function SignupPage() {
               name="displayName"
               type="text"
               required
+              autoComplete="name"
               className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
             />
           </div>
@@ -33,6 +61,7 @@ export default function SignupPage() {
               name="email"
               type="email"
               required
+              autoComplete="email"
               className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
             />
           </div>
@@ -46,7 +75,7 @@ export default function SignupPage() {
               name="password"
               type="password"
               required
-              minLength={8}
+              autoComplete="new-password"
               className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
             />
           </div>
@@ -60,19 +89,16 @@ export default function SignupPage() {
               name="inviteCode"
               type="text"
               required
-              placeholder="XXXX-XXXX-XXXX"
-              className="w-full rounded-md border bg-background px-3 py-2 text-sm font-mono outline-none focus:ring-2 focus:ring-ring"
+              autoComplete="off"
+              className="w-full rounded-md border bg-background px-3 py-2 text-sm uppercase outline-none focus:ring-2 focus:ring-ring"
             />
-            <p className="text-xs text-muted-foreground">
-              You need an invite code to create an account.
-            </p>
           </div>
 
           <button
             formAction={signup}
             className="w-full rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
           >
-            Create account
+            Sign up
           </button>
         </form>
 
