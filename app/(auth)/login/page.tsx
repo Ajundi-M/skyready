@@ -1,7 +1,13 @@
 import Link from 'next/link';
 import { login } from './actions';
 
-export default function LoginPage() {
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ message?: string; error?: string }>;
+}) {
+  const params = await searchParams;
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-background">
       <div className="w-full max-w-sm space-y-6 rounded-lg border p-8 shadow-sm">
@@ -13,6 +19,17 @@ export default function LoginPage() {
         </div>
 
         <form className="space-y-4">
+          {params?.message && (
+            <div className="rounded-md bg-blue-50 p-3 text-sm text-blue-700">
+              {params.message}
+            </div>
+          )}
+          {params?.error && (
+            <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">
+              {params.error}
+            </div>
+          )}
+
           <div className="space-y-2">
             <label htmlFor="email" className="text-sm font-medium">
               Email
