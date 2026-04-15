@@ -17,10 +17,53 @@ export default function VigilancePage() {
   const [phase, setPhase] = useState<GamePhase>('idle');
   const [duration, setDuration] = useState(300);
   const [result, setResult] = useState<SessionResult | null>(null);
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+  const [startError, setStartError] = useState<string | null>(null);
 
-  function handleSessionEnd(r: SessionResult) {
+  async function handleStart() {
+    setStartError(null);
+    try {
+      const res = await fetch('/api/sessions', { method: 'POST' });
+      if (!res.ok) {
+        setStartError('Could not start session. Please try again.');
+        return;
+      }
+      const { id } = await res.json();
+      setActiveSessionId(id);
+      setPhase('playing');
+    } catch {
+      setStartError('Could not start session. Please try again.');
+    }
+  }
+
+  async function handleSessionEnd(r: SessionResult) {
     setResult(r);
     setPhase('finished');
+
+    if (activeSessionId) {
+      const accuracy =
+        r.skipsEncountered > 0
+          ? Math.round((r.skipsDetected / r.skipsEncountered) * 10000) / 100
+          : 0;
+
+      fetch(`/api/sessions/${activeSessionId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          completed_at: new Date().toISOString(),
+          duration_s: r.durationS,
+          score: r.score,
+          accuracy,
+          metrics: {
+            skips_encountered: r.skipsEncountered,
+            skips_detected: r.skipsDetected,
+            false_presses: r.falsePresses,
+            move_interval_ms: 500,
+            circle_count: 50,
+          },
+        }),
+      }).catch(() => {});
+    }
   }
 
   if (phase === 'playing') {
@@ -109,8 +152,10 @@ export default function VigilancePage() {
         ))}
       </div>
 
+      {startError && <p className="text-destructive text-sm">{startError}</p>}
+
       <button
-        onClick={() => setPhase('playing')}
+        onClick={handleStart}
         className="px-10 py-4 bg-primary text-primary-foreground rounded-xl text-lg font-semibold hover:bg-primary/90 transition-colors"
       >
         Start
