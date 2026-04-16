@@ -9,6 +9,7 @@ type GamePhase = 'idle' | 'playing' | 'finished';
 type SkipMode = 'training' | 'exam';
 
 const DURATION_OPTIONS: { label: string; value: number }[] = [
+  { label: '10 sec', value: 10 },
   { label: '5 min', value: 300 },
   { label: '10 min', value: 600 },
   { label: '20 min', value: 1200 },
