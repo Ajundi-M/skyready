@@ -25,6 +25,7 @@ export interface SessionResult {
 interface VendingRingProps {
   sessionDuration?: number;
   onSessionEnd: (result: SessionResult) => void;
+  showSkipColour?: boolean;
 }
 
 const CIRCLE_COUNT = 50;
@@ -48,6 +49,7 @@ function getCirclePos(idx: number): { x: number; y: number } {
 export default function VendingRing({
   sessionDuration = 300,
   onSessionEnd,
+  showSkipColour = true,
 }: VendingRingProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const stateRef = useRef<GameState>({
@@ -107,7 +109,7 @@ export default function VendingRing({
       const { x, y } = getCirclePos(state.currentIdx);
       ctx.beginPath();
       ctx.arc(x, y, ACTIVE_RADIUS, 0, 2 * Math.PI);
-      ctx.fillStyle = state.isSkipFrame ? 'red' : 'white';
+      ctx.fillStyle = state.isSkipFrame && showSkipColour ? 'red' : 'white';
       ctx.fill();
 
       // HUD

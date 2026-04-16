@@ -6,16 +6,24 @@ import VendingRing, {
 } from '@/components/vigilance/VendingRing';
 
 type GamePhase = 'idle' | 'playing' | 'finished';
+type SkipMode = 'training' | 'exam';
 
 const DURATION_OPTIONS: { label: string; value: number }[] = [
   { label: '5 min', value: 300 },
   { label: '10 min', value: 600 },
+  { label: '20 min', value: 1200 },
   { label: '30 min', value: 1800 },
 ];
+
+const SKIP_MODE_DESCRIPTIONS: Record<SkipMode, string> = {
+  training: 'The dot flashes red when it skips — helps you learn the rhythm.',
+  exam: 'No colour hint — detect skips by position only. Closest to the real test.',
+};
 
 export default function VigilancePage() {
   const [phase, setPhase] = useState<GamePhase>('idle');
   const [duration, setDuration] = useState(300);
+  const [skipMode, setSkipMode] = useState<SkipMode>('training');
   const [result, setResult] = useState<SessionResult | null>(null);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [startError, setStartError] = useState<string | null>(null);
@@ -72,6 +80,7 @@ export default function VigilancePage() {
         <VendingRing
           sessionDuration={duration}
           onSessionEnd={handleSessionEnd}
+          showSkipColour={skipMode === 'training'}
         />
       </div>
     );
@@ -136,20 +145,53 @@ export default function VigilancePage() {
         </p>
       </div>
 
-      <div className="flex gap-3">
-        {DURATION_OPTIONS.map((opt) => (
-          <button
-            key={opt.value}
-            onClick={() => setDuration(opt.value)}
-            className={`px-5 py-2 rounded-lg border font-medium transition-colors ${
-              duration === opt.value
-                ? 'bg-primary text-primary-foreground border-primary'
-                : 'hover:bg-accent'
-            }`}
-          >
-            {opt.label}
-          </button>
-        ))}
+      <div className="flex flex-col gap-6 w-full max-w-sm">
+        {/* Setting 1 — Session duration */}
+        <div className="space-y-2">
+          <p className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+            Session duration
+          </p>
+          <div className="flex gap-3">
+            {DURATION_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                onClick={() => setDuration(opt.value)}
+                className={`flex-1 px-5 py-2 rounded-lg border font-medium transition-colors ${
+                  duration === opt.value
+                    ? 'bg-primary text-primary-foreground border-primary'
+                    : 'hover:bg-accent'
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Setting 2 — Skip indicator */}
+        <div className="space-y-2">
+          <p className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+            Skip indicator
+          </p>
+          <div className="flex gap-3">
+            {(['training', 'exam'] as SkipMode[]).map((mode) => (
+              <button
+                key={mode}
+                onClick={() => setSkipMode(mode)}
+                className={`flex-1 px-5 py-2 rounded-lg border font-medium transition-colors capitalize ${
+                  skipMode === mode
+                    ? 'bg-primary text-primary-foreground border-primary'
+                    : 'hover:bg-accent'
+                }`}
+              >
+                {mode.charAt(0).toUpperCase() + mode.slice(1)}
+              </button>
+            ))}
+          </div>
+          <p className="text-xs text-muted-foreground">
+            {SKIP_MODE_DESCRIPTIONS[skipMode]}
+          </p>
+        </div>
       </div>
 
       {startError && <p className="text-destructive text-sm">{startError}</p>}
