@@ -51,5 +51,5 @@ export async function signup(formData: FormData) {
     .eq('code', inviteCode);
 
   revalidatePath('/', 'layout');
-  redirect('/dashboard');
+  redirect(`/signup/confirm?email=${encodeURIComponent(email)}`);
 }
