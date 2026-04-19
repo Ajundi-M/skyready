@@ -42,7 +42,7 @@ export async function signup(formData: FormData) {
     password,
     options: {
       data: { display_name: displayName },
-      emailRedirectTo: `${SITE_URL}/login?message=Email+confirmed!+You+can+now+sign+in.`,
+      emailRedirectTo: `${SITE_URL}/auth/callback`,
     },
   });
 
