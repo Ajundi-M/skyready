@@ -15,6 +15,13 @@ type Session = {
   metrics: { skips_detected?: number; false_presses?: number } | null;
 };
 
+/** Row returned by the PostgREST aggregate query for session stats. */
+type StatsRow = {
+  count: number;
+  max: number | null;
+  avg: number | null;
+};
+
 export default async function DashboardPage() {
   async function signOut() {
     'use server';
@@ -28,39 +35,43 @@ export default async function DashboardPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { data: sessions } = await supabase
-    .from('sessions')
-    .select(
-      'id, user_id, module, started_at, completed_at, duration_s, score, accuracy, metrics',
-    )
-    .eq('user_id', user?.id ?? '')
-    .not('completed_at', 'is', null)
-    .order('started_at', { ascending: true })
-    .limit(50)
-    .returns<Session[]>();
+  const userId = user?.id ?? '';
 
-  const rows = sessions ?? [];
+  // Two parallel queries:
+  //   1. Aggregate query — the DB computes COUNT, MAX(score), AVG(accuracy).
+  //      No row limit needed; Postgres does the aggregation server-side.
+  //   2. Table query — the 10 most recent completed sessions for display.
+  //
+  // Previously a single 50-row fetch was used for both. That approach computed
+  // stats only from the oldest 50 sessions (ascending order bug) and returned
+  // far more data than the table needed.
+  const [statsResult, tableResult] = await Promise.all([
+    supabase
+      .from('sessions')
+      .select('count(), score.max(), accuracy.avg()')
+      .eq('user_id', userId)
+      .not('completed_at', 'is', null)
+      .returns<StatsRow[]>(),
+    supabase
+      .from('sessions')
+      .select(
+        'id, user_id, module, started_at, completed_at, duration_s, score, accuracy, metrics',
+      )
+      .eq('user_id', userId)
+      .not('completed_at', 'is', null)
+      .order('started_at', { ascending: false })
+      .limit(10)
+      .returns<Session[]>(),
+  ]);
 
-  // Stats
-  const totalSessions = rows.length;
-  const bestScore =
-    rows.length > 0
-      ? Math.max(
-          ...rows.map((s) => s.score ?? -Infinity).filter((v) => isFinite(v)),
-        )
-      : null;
-  const accuracyValues = rows
-    .map((s) => s.accuracy)
-    .filter((v): v is number => v != null);
-  const avgAccuracy =
-    accuracyValues.length > 0
-      ? accuracyValues.reduce((a, b) => a + b, 0) / accuracyValues.length
-      : null;
-  const latestSession = rows.length > 0 ? rows[rows.length - 1] : null;
-  const latestScore = latestSession?.score ?? null;
+  const stats = statsResult.data?.[0];
+  const totalSessions = stats?.count ?? 0;
+  const bestScore = stats?.max ?? null;
+  const avgAccuracy = stats?.avg ?? null;
 
-  // Table: 10 most recent, newest first
-  const tableRows = [...rows].reverse().slice(0, 10);
+  const tableRows = tableResult.data ?? [];
+  // Latest score comes from the first row of the DESC-ordered table query.
+  const latestScore = tableRows[0]?.score ?? null;
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
@@ -90,7 +101,7 @@ export default async function DashboardPage() {
       <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-8 px-4 py-10">
         <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
 
-        {rows.length === 0 ? (
+        {totalSessions === 0 ? (
           <div className="flex flex-col items-center justify-center gap-3 py-20 text-center">
             <p className="text-muted-foreground">
               No sessions yet. Head to{' '}
@@ -110,11 +121,7 @@ export default async function DashboardPage() {
               <StatCard label="Total Sessions" value={String(totalSessions)} />
               <StatCard
                 label="Best Score"
-                value={
-                  bestScore != null && isFinite(bestScore)
-                    ? String(bestScore)
-                    : '—'
-                }
+                value={bestScore != null ? String(bestScore) : '—'}
               />
               <StatCard
                 label="Avg Accuracy"
