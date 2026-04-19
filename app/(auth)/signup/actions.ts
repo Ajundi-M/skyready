@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import { createServiceClient } from '@/lib/supabase/service';
 
 export async function signup(formData: FormData) {
   const supabase = await createClient();
@@ -40,8 +41,13 @@ export async function signup(formData: FormData) {
     redirect('/signup?error=Could not create account. Please try again.');
   }
 
-  // Step 3 — mark the invite code as used
-  await supabase
+  if (authData.user.identities?.length === 0) {
+    redirect('/signup?error=An account with this email already exists.');
+  }
+
+  // Step 3 — mark the invite code as used (service role bypasses RLS)
+  const serviceSupabase = createServiceClient();
+  await serviceSupabase
     .from('invite_codes')
     .update({
       used: true,
