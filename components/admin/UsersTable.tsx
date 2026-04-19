@@ -24,16 +24,21 @@ export function UsersTable() {
   const [fetchError, setFetchError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch('/api/admin/users')
+    const controller = new AbortController();
+
+    fetch('/api/admin/users', { signal: controller.signal })
       .then(async (res) => {
         if (!res.ok) throw new Error(`Error ${res.status}`);
         return res.json() as Promise<User[]>;
       })
       .then((data) => setUsers(data))
-      .catch((err: unknown) =>
-        setFetchError(err instanceof Error ? err.message : 'Failed to load'),
-      )
+      .catch((err: unknown) => {
+        if (err instanceof Error && err.name === 'AbortError') return;
+        setFetchError(err instanceof Error ? err.message : 'Failed to load');
+      })
       .finally(() => setLoading(false));
+
+    return () => controller.abort();
   }, []);
 
   if (loading) {
