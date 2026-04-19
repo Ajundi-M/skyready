@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { login } from './actions';
+import { SubmitButton } from '@/components/ui/submit-button';
 
 export default async function LoginPage({
   searchParams,
@@ -56,12 +57,7 @@ export default async function LoginPage({
             />
           </div>
 
-          <button
-            formAction={login}
-            className="w-full rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-          >
-            Sign in
-          </button>
+          <SubmitButton formAction={login}>Sign in</SubmitButton>
         </form>
 
         <p className="text-center text-sm text-muted-foreground">

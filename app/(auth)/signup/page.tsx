@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { signup } from './actions';
+import { SubmitButton } from '@/components/ui/submit-button';
 
 export default async function SignupPage({
   searchParams,
@@ -94,12 +95,7 @@ export default async function SignupPage({
             />
           </div>
 
-          <button
-            formAction={signup}
-            className="w-full rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-          >
-            Sign up
-          </button>
+          <SubmitButton formAction={signup}>Sign up</SubmitButton>
         </form>
 
         <p className="text-center text-sm text-muted-foreground">
