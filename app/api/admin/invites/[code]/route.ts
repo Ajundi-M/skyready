@@ -1,9 +1,14 @@
 import { createClient } from '@/lib/supabase/server';
+import { checkCsrfOrigin } from '@/lib/security/csrf';
 
 export async function DELETE(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ code: string }> },
 ) {
+  if (!checkCsrfOrigin(request)) {
+    return Response.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
   const supabase = await createClient();
 
   const {

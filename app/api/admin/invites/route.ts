@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { createServiceClient } from '@/lib/supabase/service';
 import { generateInviteCode, inviteExpiry } from '@/lib/invite';
+import { checkCsrfOrigin } from '@/lib/security/csrf';
 
 async function getAdminUser() {
   const supabase = await createClient();
@@ -21,12 +22,16 @@ async function getAdminUser() {
 }
 
 export async function GET() {
-  const { supabase, user, forbidden } = await getAdminUser();
+  const { user, forbidden } = await getAdminUser();
 
   if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
   if (forbidden) return Response.json({ error: 'Forbidden' }, { status: 403 });
 
   const now = new Date().toISOString();
+
+  // Service role is required here to bypass RLS and retrieve all invite codes
+  // (not just those created by the requesting admin) together with the
+  // profiles!used_by join, which crosses the RLS boundary on the profiles table.
   const serviceSupabase = createServiceClient();
 
   const { data, error } = await serviceSupabase
@@ -46,7 +51,11 @@ export async function GET() {
   return Response.json(invites);
 }
 
-export async function POST() {
+export async function POST(request: Request) {
+  if (!checkCsrfOrigin(request)) {
+    return Response.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
   const { supabase, user, forbidden } = await getAdminUser();
 
   if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
