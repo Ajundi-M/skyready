@@ -1,4 +1,15 @@
 import { createServiceClient } from '@/lib/supabase/service';
+
+/** Shape of a row returned by the invite_codes + profiles join. */
+type InviteCodeRow = {
+  code: string;
+  created_at: string;
+  expires_at: string;
+  used: boolean;
+  created_by: string;
+  used_by: string | null;
+  profiles: { email: string } | null;
+};
 import { generateInviteCode, inviteExpiry } from '@/lib/invite';
 import { checkCsrfOrigin } from '@/lib/security/csrf';
 import { checkRateLimit } from '@/lib/security/rateLimit';
@@ -18,7 +29,8 @@ export async function GET() {
   const { data, error } = await serviceSupabase
     .from('invite_codes')
     .select('*, profiles!used_by(email)')
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false })
+    .returns<InviteCodeRow[]>();
 
   if (error) {
     return Response.json({ error: 'Failed to fetch invites' }, { status: 500 });

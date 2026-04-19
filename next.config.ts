@@ -18,6 +18,7 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: __dirname,
   },
+  // eslint-disable-next-line @typescript-eslint/require-await
   async headers() {
     return [
       {

@@ -37,7 +37,7 @@ export default function VigilancePage() {
         setStartError('Could not start session. Please try again.');
         return;
       }
-      const { id } = await res.json();
+      const { id } = (await res.json()) as { id: string };
       setActiveSessionId(id);
       setPhase('playing');
     } catch {
@@ -66,7 +66,7 @@ export default function VigilancePage() {
     };
   }
 
-  async function handleSessionEnd(r: SessionResult) {
+  function handleSessionEnd(r: SessionResult) {
     setResult(r);
     setPhase('finished');
 

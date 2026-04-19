@@ -1,13 +1,7 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import {
-  fmt,
-  fmtAccuracy,
-  fmtDate,
-  fmtDateTime,
-  fmtDuration,
-} from '@/lib/format';
+import { fmt, fmtAccuracy, fmtDateTime, fmtDuration } from '@/lib/format';
 
 type Session = {
   id: string;

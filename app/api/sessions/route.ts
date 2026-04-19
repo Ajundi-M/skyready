@@ -20,6 +20,7 @@ export async function POST() {
       started_at: new Date().toISOString(),
     })
     .select('id')
+    .returns<{ id: string }[]>()
     .single();
 
   if (error || !data) {

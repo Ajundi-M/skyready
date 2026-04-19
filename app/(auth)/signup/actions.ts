@@ -80,10 +80,15 @@ export async function signup(formData: FormData) {
   //   b) auth.admin.deleteUser() is only accessible via the service role key;
   //      it is not available through the anon/authenticated role.
   const serviceSupabase = createServiceClient();
-  const { data: claimed, error: claimError } = await serviceSupabase.rpc(
-    'claim_invite_code',
-    { p_code: inviteCode, p_user_id: authData.user.id },
-  );
+  // The Supabase SDK's rpc() return type uses `any` without generated database
+  // types. The destructured values are safe: `data` is a boolean (the Postgres
+  // function returns true on success), and `error` is PostgrestError | null.
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+  const { data: claimed, error: claimError } =
+    await serviceSupabase.rpc<boolean>('claim_invite_code', {
+      p_code: inviteCode,
+      p_user_id: authData.user.id,
+    });
 
   if (claimError || !claimed) {
     // Another concurrent signup won the race — roll back the new auth user.
