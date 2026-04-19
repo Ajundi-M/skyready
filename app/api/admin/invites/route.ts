@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { createServiceClient } from '@/lib/supabase/service';
 import { generateInviteCode, inviteExpiry } from '@/lib/invite';
 import { checkCsrfOrigin } from '@/lib/security/csrf';
+import { checkRateLimit } from '@/lib/security/rateLimit';
 
 async function getAdminUser() {
   const supabase = await createClient();
@@ -54,6 +55,17 @@ export async function GET() {
 export async function POST(request: Request) {
   if (!checkCsrfOrigin(request)) {
     return Response.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
+  const ip =
+    request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ??
+    request.headers.get('x-real-ip') ??
+    'unknown';
+
+  // 20 invite creations per hour per IP (admin-only, but still bounded)
+  const { allowed } = checkRateLimit(`admin-invite:${ip}`, 20, 60 * 60 * 1000);
+  if (!allowed) {
+    return Response.json({ error: 'Rate limit exceeded' }, { status: 429 });
   }
 
   const { supabase, user, forbidden } = await getAdminUser();

@@ -2,14 +2,28 @@
 
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+import { headers } from 'next/headers';
 import { createClient } from '@/lib/supabase/server';
 import { createServiceClient } from '@/lib/supabase/service';
+import { checkRateLimit } from '@/lib/security/rateLimit';
 
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') ??
   'http://localhost:3000';
 
 export async function signup(formData: FormData) {
+  const headersList = await headers();
+  const ip =
+    headersList.get('x-forwarded-for')?.split(',')[0]?.trim() ??
+    headersList.get('x-real-ip') ??
+    'unknown';
+
+  // 3 signup attempts per hour per IP
+  const { allowed } = checkRateLimit(`signup:${ip}`, 3, 60 * 60 * 1000);
+  if (!allowed) {
+    redirect('/signup?error=Too+many+signup+attempts.+Please+try+again+later.');
+  }
+
   const supabase = await createClient();
 
   const displayName = formData.get('displayName') as string;
@@ -58,6 +72,13 @@ export async function signup(formData: FormData) {
   // Step 3 — atomically claim the invite code via a Postgres function that
   // does a single conditional UPDATE.  This eliminates the TOCTOU race that
   // existed between the pre-flight SELECT and the mark-used UPDATE.
+  //
+  // Service role is required because:
+  //   a) claim_invite_code is a SECURITY DEFINER function that updates
+  //      invite_codes on behalf of a user who is not yet authenticated
+  //      (they've just been created and have no active session cookie yet).
+  //   b) auth.admin.deleteUser() is only accessible via the service role key;
+  //      it is not available through the anon/authenticated role.
   const serviceSupabase = createServiceClient();
   const { data: claimed, error: claimError } = await serviceSupabase.rpc(
     'claim_invite_code',
