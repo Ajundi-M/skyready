@@ -34,6 +34,8 @@ export async function signup(formData: FormData) {
     password,
     options: {
       data: { display_name: displayName },
+      emailRedirectTo:
+        'https://train.aljundi.me/login?message=Email+confirmed!+You+can+now+sign+in.',
     },
   });
 
