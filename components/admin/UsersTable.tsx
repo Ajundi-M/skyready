@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { fmtDate } from '@/lib/format';
 
 type User = {
   id: string;
@@ -9,14 +10,6 @@ type User = {
   created_at: string;
   session_count: number;
 };
-
-function fmtDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('en-GB', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  });
-}
 
 export function UsersTable() {
   const [users, setUsers] = useState<User[]>([]);

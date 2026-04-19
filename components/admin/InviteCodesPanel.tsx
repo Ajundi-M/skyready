@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
+import { fmtDate } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
 type InviteCode = {
@@ -13,14 +14,6 @@ type InviteCode = {
   status: 'unused' | 'used' | 'expired';
   profiles: { email: string } | null;
 };
-
-function fmtDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('en-GB', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  });
-}
 
 const statusStyles: Record<InviteCode['status'], string> = {
   unused:

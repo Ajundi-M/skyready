@@ -1,6 +1,13 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import {
+  fmt,
+  fmtAccuracy,
+  fmtDate,
+  fmtDateTime,
+  fmtDuration,
+} from '@/lib/format';
 
 type Session = {
   id: string;
@@ -13,38 +20,6 @@ type Session = {
   accuracy: number | null;
   metrics: { skips_detected?: number; false_presses?: number } | null;
 };
-
-function fmt(value: number | null | undefined, fallback = '—'): string {
-  if (value == null) return fallback;
-  return String(value);
-}
-
-function fmtAccuracy(value: number | null | undefined): string {
-  if (value == null) return '—';
-  return `${value.toFixed(1)}%`;
-}
-
-function fmtDuration(seconds: number | null | undefined): string {
-  if (seconds == null) return '—';
-  const m = Math.floor(seconds / 60);
-  const s = seconds % 60;
-  return `${m} min ${s} sec`;
-}
-
-function fmtDate(iso: string): string {
-  const d = new Date(iso);
-  const date = d.toLocaleDateString('en-GB', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  });
-  const time = d.toLocaleTimeString('en-GB', {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  });
-  return `${date} ${time}`;
-}
 
 export default async function DashboardPage() {
   async function signOut() {
@@ -181,7 +156,7 @@ export default async function DashboardPage() {
                         }
                       >
                         <td className="whitespace-nowrap px-4 py-3 tabular-nums">
-                          {fmtDate(session.started_at)}
+                          {fmtDateTime(session.started_at)}
                         </td>
                         <td className="px-4 py-3 tabular-nums">
                           {fmtDuration(session.duration_s)}
