@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { fmt, fmtAccuracy, fmtDateTime, fmtDuration } from '@/lib/format';
 
@@ -23,13 +22,6 @@ type StatsRow = {
 };
 
 export default async function DashboardPage() {
-  async function signOut() {
-    'use server';
-    const supabase = await createClient();
-    await supabase.auth.signOut();
-    redirect('/login');
-  }
-
   const supabase = await createClient();
   const {
     data: { user },
@@ -74,116 +66,89 @@ export default async function DashboardPage() {
   const latestScore = tableRows[0]?.score ?? null;
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
-      {/* Nav */}
-      <header className="border-b">
-        <div className="mx-auto flex h-14 w-full max-w-5xl items-center justify-between px-4">
-          <span className="text-lg font-semibold">SkyReady</span>
-          <div className="flex items-center gap-4">
+    <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-8 px-4 py-10">
+      <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
+
+      {totalSessions === 0 ? (
+        <div className="flex flex-col items-center justify-center gap-3 py-20 text-center">
+          <p className="text-muted-foreground">
+            No sessions yet. Head to{' '}
             <Link
               href="/train"
-              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+              className="font-medium text-foreground underline underline-offset-4"
             >
               Train
-            </Link>
-            <form action={signOut}>
-              <button
-                type="submit"
-                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-              >
-                Sign out
-              </button>
-            </form>
-          </div>
+            </Link>{' '}
+            to start your first session.
+          </p>
         </div>
-      </header>
-
-      <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-8 px-4 py-10">
-        <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-
-        {totalSessions === 0 ? (
-          <div className="flex flex-col items-center justify-center gap-3 py-20 text-center">
-            <p className="text-muted-foreground">
-              No sessions yet. Head to{' '}
-              <Link
-                href="/train"
-                className="font-medium text-foreground underline underline-offset-4"
-              >
-                Train
-              </Link>{' '}
-              to start your first session.
-            </p>
+      ) : (
+        <>
+          {/* Stats cards */}
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            <StatCard label="Total Sessions" value={String(totalSessions)} />
+            <StatCard
+              label="Best Score"
+              value={bestScore != null ? String(bestScore) : '—'}
+            />
+            <StatCard
+              label="Avg Accuracy"
+              value={avgAccuracy != null ? `${avgAccuracy.toFixed(1)}%` : '—'}
+            />
+            <StatCard
+              label="Latest Score"
+              value={latestScore != null ? String(latestScore) : '—'}
+            />
           </div>
-        ) : (
-          <>
-            {/* Stats cards */}
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-              <StatCard label="Total Sessions" value={String(totalSessions)} />
-              <StatCard
-                label="Best Score"
-                value={bestScore != null ? String(bestScore) : '—'}
-              />
-              <StatCard
-                label="Avg Accuracy"
-                value={avgAccuracy != null ? `${avgAccuracy.toFixed(1)}%` : '—'}
-              />
-              <StatCard
-                label="Latest Score"
-                value={latestScore != null ? String(latestScore) : '—'}
-              />
-            </div>
 
-            {/* Sessions table */}
-            <div>
-              <h2 className="mb-3 text-base font-semibold">Recent Sessions</h2>
-              <div className="overflow-x-auto rounded-lg border">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b bg-muted/50 text-left text-xs font-medium text-muted-foreground">
-                      <th className="px-4 py-3">Date</th>
-                      <th className="px-4 py-3">Duration</th>
-                      <th className="px-4 py-3">Score</th>
-                      <th className="px-4 py-3">Accuracy</th>
-                      <th className="px-4 py-3">Skips Detected</th>
-                      <th className="px-4 py-3">False Presses</th>
+          {/* Sessions table */}
+          <div>
+            <h2 className="mb-3 text-base font-semibold">Recent Sessions</h2>
+            <div className="overflow-x-auto rounded-lg border">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b bg-muted/50 text-left text-xs font-medium text-muted-foreground">
+                    <th className="px-4 py-3">Date</th>
+                    <th className="px-4 py-3">Duration</th>
+                    <th className="px-4 py-3">Score</th>
+                    <th className="px-4 py-3">Accuracy</th>
+                    <th className="px-4 py-3">Skips Detected</th>
+                    <th className="px-4 py-3">False Presses</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {tableRows.map((session, i) => (
+                    <tr
+                      key={session.id}
+                      className={i % 2 === 0 ? 'bg-background' : 'bg-muted/20'}
+                    >
+                      <td className="whitespace-nowrap px-4 py-3 tabular-nums">
+                        {fmtDateTime(session.started_at)}
+                      </td>
+                      <td className="px-4 py-3 tabular-nums">
+                        {fmtDuration(session.duration_s)}
+                      </td>
+                      <td className="px-4 py-3 tabular-nums">
+                        {fmt(session.score)}
+                      </td>
+                      <td className="px-4 py-3 tabular-nums">
+                        {fmtAccuracy(session.accuracy)}
+                      </td>
+                      <td className="px-4 py-3 tabular-nums">
+                        {fmt(session.metrics?.skips_detected)}
+                      </td>
+                      <td className="px-4 py-3 tabular-nums">
+                        {fmt(session.metrics?.false_presses)}
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {tableRows.map((session, i) => (
-                      <tr
-                        key={session.id}
-                        className={
-                          i % 2 === 0 ? 'bg-background' : 'bg-muted/20'
-                        }
-                      >
-                        <td className="whitespace-nowrap px-4 py-3 tabular-nums">
-                          {fmtDateTime(session.started_at)}
-                        </td>
-                        <td className="px-4 py-3 tabular-nums">
-                          {fmtDuration(session.duration_s)}
-                        </td>
-                        <td className="px-4 py-3 tabular-nums">
-                          {fmt(session.score)}
-                        </td>
-                        <td className="px-4 py-3 tabular-nums">
-                          {fmtAccuracy(session.accuracy)}
-                        </td>
-                        <td className="px-4 py-3 tabular-nums">
-                          {fmt(session.metrics?.skips_detected)}
-                        </td>
-                        <td className="px-4 py-3 tabular-nums">
-                          {fmt(session.metrics?.false_presses)}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                  ))}
+                </tbody>
+              </table>
             </div>
-          </>
-        )}
-      </main>
-    </div>
+          </div>
+        </>
+      )}
+    </main>
   );
 }
 
