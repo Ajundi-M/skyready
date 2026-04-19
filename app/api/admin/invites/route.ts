@@ -1,32 +1,12 @@
-import { createClient } from '@/lib/supabase/server';
 import { createServiceClient } from '@/lib/supabase/service';
 import { generateInviteCode, inviteExpiry } from '@/lib/invite';
 import { checkCsrfOrigin } from '@/lib/security/csrf';
 import { checkRateLimit } from '@/lib/security/rateLimit';
-
-async function getAdminUser() {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) return { supabase, user: null, forbidden: true };
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('is_admin')
-    .eq('id', user.id)
-    .single();
-
-  return { supabase, user, forbidden: !profile?.is_admin };
-}
+import { requireAdmin } from '@/lib/auth/require-admin';
 
 export async function GET() {
-  const { user, forbidden } = await getAdminUser();
-
-  if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
-  if (forbidden) return Response.json({ error: 'Forbidden' }, { status: 403 });
+  const admin = await requireAdmin();
+  if (admin instanceof Response) return admin;
 
   const now = new Date().toISOString();
 
@@ -68,10 +48,9 @@ export async function POST(request: Request) {
     return Response.json({ error: 'Rate limit exceeded' }, { status: 429 });
   }
 
-  const { supabase, user, forbidden } = await getAdminUser();
-
-  if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
-  if (forbidden) return Response.json({ error: 'Forbidden' }, { status: 403 });
+  const admin = await requireAdmin();
+  if (admin instanceof Response) return admin;
+  const { supabase, user } = admin;
 
   const code = generateInviteCode();
   const expires_at = inviteExpiry().toISOString();
