@@ -45,34 +45,49 @@ export default function VigilancePage() {
     }
   }
 
+  function buildPatchBody(r: SessionResult, cancelled = false) {
+    const accuracy =
+      r.skipsEncountered > 0
+        ? Math.round((r.skipsDetected / r.skipsEncountered) * 10000) / 100
+        : 0;
+    return {
+      completed_at: new Date().toISOString(),
+      duration_s: r.durationS,
+      score: r.score,
+      accuracy,
+      metrics: {
+        skips_encountered: r.skipsEncountered,
+        skips_detected: r.skipsDetected,
+        false_presses: r.falsePresses,
+        move_interval_ms: 500,
+        circle_count: 50,
+        ...(cancelled ? { cancelled: true } : {}),
+      },
+    };
+  }
+
   async function handleSessionEnd(r: SessionResult) {
     setResult(r);
     setPhase('finished');
 
     if (activeSessionId) {
-      const accuracy =
-        r.skipsEncountered > 0
-          ? Math.round((r.skipsDetected / r.skipsEncountered) * 10000) / 100
-          : 0;
-
       fetch(`/api/sessions/${activeSessionId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          completed_at: new Date().toISOString(),
-          duration_s: r.durationS,
-          score: r.score,
-          accuracy,
-          metrics: {
-            skips_encountered: r.skipsEncountered,
-            skips_detected: r.skipsDetected,
-            false_presses: r.falsePresses,
-            move_interval_ms: 500,
-            circle_count: 50,
-          },
-        }),
+        body: JSON.stringify(buildPatchBody(r)),
       }).catch(() => {});
     }
+  }
+
+  function handleCancel(r: SessionResult) {
+    if (!activeSessionId) return;
+    // Fire-and-forget: mark the orphaned session as cancelled so it is not
+    // left with completed_at = null. This runs when the user navigates away.
+    fetch(`/api/sessions/${activeSessionId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(buildPatchBody(r, true)),
+    }).catch(() => {});
   }
 
   if (phase === 'playing') {
@@ -81,6 +96,7 @@ export default function VigilancePage() {
         <VendingRing
           sessionDuration={duration}
           onSessionEnd={handleSessionEnd}
+          onCancel={handleCancel}
           showSkipColour={skipMode === 'training'}
         />
       </div>

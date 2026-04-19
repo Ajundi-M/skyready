@@ -11,6 +11,8 @@ export const sessionMetricsSchema = z
     false_presses: z.number().int().min(0),
     move_interval_ms: z.number().int().min(100).max(5000),
     circle_count: z.number().int().min(1).max(200),
+    /** True when the session was abandoned by navigating away mid-game. */
+    cancelled: z.boolean().optional(),
   })
   .strict();
 
