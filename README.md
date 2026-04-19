@@ -93,7 +93,7 @@ sessions        id, user_id, module, started_at, completed_at,
 ### 1. Clone and install
 
 ```bash
-git clone https://github.com/your-username/skyready.git
+git clone https://github.com/Ajundi-M/skyready.git
 cd skyready
 npm install
 ```
