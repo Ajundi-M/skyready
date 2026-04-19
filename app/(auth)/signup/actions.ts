@@ -5,6 +5,10 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { createServiceClient } from '@/lib/supabase/service';
 
+const SITE_URL =
+  process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') ??
+  'http://localhost:3000';
+
 export async function signup(formData: FormData) {
   const supabase = await createClient();
 
@@ -15,48 +19,58 @@ export async function signup(formData: FormData) {
     .toUpperCase()
     .trim();
 
-  // Step 1 — validate the invite code BEFORE creating the user
-  const { data: codeRow, error: codeError } = await supabase
+  // Step 1 — fast pre-flight check: does a claimable code exist?
+  // This gives the user a friendly error before we attempt any auth work.
+  // It is NOT the authoritative claim — that happens atomically in Step 3.
+  const { data: codeRow } = await supabase
     .from('invite_codes')
     .select('code')
     .eq('code', inviteCode)
     .eq('used', false)
     .gt('expires_at', new Date().toISOString())
-    .single();
+    .maybeSingle();
 
-  if (codeError || !codeRow) {
-    redirect('/signup?error=Invalid, expired, or already used invite code');
+  if (!codeRow) {
+    redirect('/signup?error=Invalid%2C+expired%2C+or+already+used+invite+code');
   }
 
-  // Step 2 — create the Supabase Auth user
+  // Step 2 — create the Supabase Auth user.
+  // We pass emailRedirectTo using the environment-configured site URL so that
+  // the confirmation link works in all environments (local, staging, prod).
   const { data: authData, error: authError } = await supabase.auth.signUp({
     email,
     password,
     options: {
       data: { display_name: displayName },
-      emailRedirectTo:
-        'https://train.aljundi.me/login?message=Email+confirmed!+You+can+now+sign+in.',
+      emailRedirectTo: `${SITE_URL}/login?message=Email+confirmed!+You+can+now+sign+in.`,
     },
   });
 
   if (authError || !authData.user) {
-    redirect('/signup?error=Could not create account. Please try again.');
+    redirect('/signup?error=Could+not+create+account.+Please+try+again.');
   }
 
-  if (authData.user.identities?.length === 0) {
-    redirect('/signup?error=An account with this email already exists.');
-  }
+  // Intentionally NOT checking authData.user.identities?.length === 0 here.
+  // That check leaks whether an email address is already registered.
+  // Instead we always redirect to the confirmation page; Supabase will send
+  // a "you already have an account" email to the existing user transparently.
 
-  // Step 3 — mark the invite code as used (service role bypasses RLS)
+  // Step 3 — atomically claim the invite code via a Postgres function that
+  // does a single conditional UPDATE.  This eliminates the TOCTOU race that
+  // existed between the pre-flight SELECT and the mark-used UPDATE.
   const serviceSupabase = createServiceClient();
-  await serviceSupabase
-    .from('invite_codes')
-    .update({
-      used: true,
-      used_by: authData.user.id,
-      used_at: new Date().toISOString(),
-    })
-    .eq('code', inviteCode);
+  const { data: claimed, error: claimError } = await serviceSupabase.rpc(
+    'claim_invite_code',
+    { p_code: inviteCode, p_user_id: authData.user.id },
+  );
+
+  if (claimError || !claimed) {
+    // Another concurrent signup won the race — roll back the new auth user.
+    await serviceSupabase.auth.admin.deleteUser(authData.user.id);
+    redirect(
+      '/signup?error=Invite+code+was+just+used+by+someone+else.+Please+ask+for+a+new+one.',
+    );
+  }
 
   revalidatePath('/', 'layout');
   redirect(`/signup/confirm?email=${encodeURIComponent(email)}`);
