@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
 type InviteCode = {
@@ -29,6 +30,7 @@ const statusStyles: Record<InviteCode['status'], string> = {
 };
 
 export function InviteCodesPanel() {
+  const { toast } = useToast();
   const [codes, setCodes] = useState<InviteCode[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
@@ -39,16 +41,21 @@ export function InviteCodesPanel() {
   const dialogRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    fetch('/api/admin/invites')
+    const controller = new AbortController();
+
+    fetch('/api/admin/invites', { signal: controller.signal })
       .then(async (res) => {
         if (!res.ok) throw new Error(`Error ${res.status}`);
         return res.json() as Promise<InviteCode[]>;
       })
       .then((data) => setCodes(data))
-      .catch((err: unknown) =>
-        setFetchError(err instanceof Error ? err.message : 'Failed to load'),
-      )
+      .catch((err: unknown) => {
+        if (err instanceof Error && err.name === 'AbortError') return;
+        setFetchError(err instanceof Error ? err.message : 'Failed to load');
+      })
       .finally(() => setLoading(false));
+
+    return () => controller.abort();
   }, []);
 
   async function handleGenerate() {
@@ -70,9 +77,15 @@ export function InviteCodesPanel() {
       setCodes((prev) => [fresh, ...prev]);
       setNewCode(code);
       setCopied(false);
+      toast({
+        title: 'Invite code created',
+        description: `Expires in 48 hours.`,
+      });
     } catch {
-      // Surface via alert — modal is reserved for the code display
-      alert('Failed to generate invite code.');
+      toast({
+        title: 'Failed to generate invite code',
+        variant: 'destructive',
+      });
     } finally {
       setGenerating(false);
     }
@@ -88,13 +101,17 @@ export function InviteCodesPanel() {
     const res = await fetch(`/api/admin/invites/${code}`, { method: 'DELETE' });
     if (!res.ok) {
       const body = (await res.json().catch(() => ({}))) as { error?: string };
-      setDeleteErrors((prev) => ({
-        ...prev,
-        [code]: body.error ?? `Error ${res.status}`,
-      }));
+      const message = body.error ?? `Error ${res.status}`;
+      setDeleteErrors((prev) => ({ ...prev, [code]: message }));
+      toast({
+        title: 'Failed to delete invite',
+        description: message,
+        variant: 'destructive',
+      });
       return;
     }
     setCodes((prev) => prev.filter((c) => c.code !== code));
+    toast({ title: 'Invite code deleted' });
   }
 
   async function handleCopy() {
