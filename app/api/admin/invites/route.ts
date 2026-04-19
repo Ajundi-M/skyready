@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import { createServiceClient } from '@/lib/supabase/service';
 import { generateInviteCode, inviteExpiry } from '@/lib/invite';
 
 async function getAdminUser() {
@@ -26,8 +27,9 @@ export async function GET() {
   if (forbidden) return Response.json({ error: 'Forbidden' }, { status: 403 });
 
   const now = new Date().toISOString();
+  const serviceSupabase = createServiceClient();
 
-  const { data, error } = await supabase
+  const { data, error } = await serviceSupabase
     .from('invite_codes')
     .select('*, profiles!used_by(email)')
     .order('created_at', { ascending: false });
