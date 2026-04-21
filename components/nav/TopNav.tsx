@@ -15,7 +15,7 @@ export function TopNav({ isAdmin }: { isAdmin: boolean }) {
 
   return (
     <nav className="border-b">
-      <div className="mx-auto flex h-14 w-full max-w-5xl items-center justify-between px-4">
+      <div className="mx-auto flex h-14 w-full max-w-7xl items-center justify-between px-4">
         <Link href="/dashboard" className="font-bold text-lg">
           SkyReady
         </Link>
