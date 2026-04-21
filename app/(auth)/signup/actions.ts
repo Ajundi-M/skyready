@@ -6,6 +6,7 @@ import { headers } from 'next/headers';
 import { createClient } from '@/lib/supabase/server';
 import { createServiceClient } from '@/lib/supabase/service';
 import { checkRateLimit } from '@/lib/security/rateLimit';
+import { normalizeInviteCode } from '@/lib/invite';
 
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') ??
@@ -29,9 +30,7 @@ export async function signup(formData: FormData) {
   const displayName = formData.get('displayName') as string;
   const email = formData.get('email') as string;
   const password = formData.get('password') as string;
-  const inviteCode = (formData.get('inviteCode') as string)
-    .toUpperCase()
-    .trim();
+  const inviteCode = normalizeInviteCode(formData.get('inviteCode') as string);
 
   // Step 1 — fast pre-flight check: does a claimable code exist?
   // This gives the user a friendly error before we attempt any auth work.

@@ -26,6 +26,17 @@ const eslintConfig = defineConfig([
         "error",
         { checksVoidReturn: { attributes: false } },
       ],
+      // Allow _-prefixed identifiers to be declared without being used.
+      // This is the conventional way to mark intentionally unused destructured
+      // bindings (e.g. `const { foo: _foo, ...rest } = obj`).
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        {
+          varsIgnorePattern: "^_",
+          argsIgnorePattern: "^_",
+          caughtErrorsIgnorePattern: "^_",
+        },
+      ],
     },
   },
   prettier,
