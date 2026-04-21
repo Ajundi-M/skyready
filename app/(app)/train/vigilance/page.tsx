@@ -29,10 +29,12 @@ export default function VigilancePage() {
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [startError, setStartError] = useState<string | null>(null);
   const [cancelledNotice, setCancelledNotice] = useState(false);
+  const [showEscHint, setShowEscHint] = useState(true);
 
   async function handleStart() {
     setStartError(null);
     setCancelledNotice(false);
+    setShowEscHint(true);
     try {
       const res = await fetch('/api/sessions', { method: 'POST' });
       if (!res.ok) {
@@ -103,15 +105,20 @@ export default function VigilancePage() {
 
   useEffect(() => {
     if (phase !== 'playing') return;
+    const hintTimer = setTimeout(() => setShowEscHint(false), 3000);
     function onKeyDown(e: KeyboardEvent) {
       if (e.key === 'Escape') {
+        clearTimeout(hintTimer);
         handleCancel();
         setPhase('idle');
         setCancelledNotice(true);
       }
     }
     window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
+    return () => {
+      clearTimeout(hintTimer);
+      window.removeEventListener('keydown', onKeyDown);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase, activeSessionId]);
 
@@ -126,7 +133,9 @@ export default function VigilancePage() {
             showSkipColour={skipMode === 'training'}
           />
         </div>
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 text-xs text-white/30 select-none">
+        <div
+          className={`absolute bottom-6 left-1/2 -translate-x-1/2 text-xs text-white/40 select-none transition-opacity duration-1000 ${showEscHint ? 'opacity-100' : 'opacity-0'}`}
+        >
           Press Esc to cancel session
         </div>
       </div>
