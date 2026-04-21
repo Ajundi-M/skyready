@@ -1,4 +1,5 @@
 import { requireAdmin } from '@/lib/auth/require-admin';
+import { createServiceClient } from '@/lib/supabase/service';
 
 type ProfileRow = {
   id: string;
@@ -11,9 +12,11 @@ type ProfileRow = {
 export async function GET() {
   const admin = await requireAdmin();
   if (admin instanceof Response) return admin;
-  const { supabase } = admin;
 
-  const { data, error } = await supabase
+  // SERVICE ROLE: Bypasses RLS to return all profiles, not just the
+  // calling admin's own row. Admin identity verified above via requireAdmin().
+  const serviceSupabase = createServiceClient();
+  const { data, error } = await serviceSupabase
     .from('profiles')
     .select('id, email, display_name, created_at, sessions(count)')
     .order('created_at', { ascending: false })
