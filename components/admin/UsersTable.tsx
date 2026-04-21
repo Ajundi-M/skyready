@@ -17,9 +17,10 @@ type User = {
 
 type Props = {
   currentUserId: string;
+  isSuperAdmin: boolean;
 };
 
-export function UsersTable({ currentUserId }: Props) {
+export function UsersTable({ currentUserId, isSuperAdmin }: Props) {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
@@ -127,7 +128,7 @@ export function UsersTable({ currentUserId }: Props) {
             <th className="px-4 py-3">Email</th>
             <th className="px-4 py-3">Joined</th>
             <th className="px-4 py-3">Sessions</th>
-            <th className="px-4 py-3">Actions</th>
+            {isSuperAdmin && <th className="px-4 py-3">Actions</th>}
           </tr>
         </thead>
         <tbody>
@@ -155,54 +156,56 @@ export function UsersTable({ currentUserId }: Props) {
                   {fmtDate(user.created_at)}
                 </td>
                 <td className="px-4 py-3 tabular-nums">{user.session_count}</td>
-                <td className="px-4 py-3">
-                  <div className="flex flex-wrap gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      disabled={isSelf}
-                      title={
-                        isSelf
-                          ? 'You cannot modify your own account'
-                          : undefined
-                      }
-                      onClick={() => handlePatch(user.id, 'toggle_admin')}
-                    >
-                      {user.is_admin ? 'Revoke Admin' : 'Make Admin'}
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      disabled={isSelf}
-                      title={
-                        isSelf
-                          ? 'You cannot modify your own account'
-                          : undefined
-                      }
-                      onClick={() =>
-                        handlePatch(
-                          user.id,
-                          user.banned_until ? 'unsuspend' : 'suspend',
-                        )
-                      }
-                    >
-                      {user.banned_until ? 'Unsuspend' : 'Suspend'}
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      disabled={isSelf}
-                      title={
-                        isSelf
-                          ? 'You cannot modify your own account'
-                          : undefined
-                      }
-                      onClick={() => handleDelete(user.id)}
-                    >
-                      Delete
-                    </Button>
-                  </div>
-                </td>
+                {isSuperAdmin && (
+                  <td className="px-4 py-3">
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={isSelf}
+                        title={
+                          isSelf
+                            ? 'You cannot modify your own account'
+                            : undefined
+                        }
+                        onClick={() => handlePatch(user.id, 'toggle_admin')}
+                      >
+                        {user.is_admin ? 'Revoke Admin' : 'Make Admin'}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={isSelf}
+                        title={
+                          isSelf
+                            ? 'You cannot modify your own account'
+                            : undefined
+                        }
+                        onClick={() =>
+                          handlePatch(
+                            user.id,
+                            user.banned_until ? 'unsuspend' : 'suspend',
+                          )
+                        }
+                      >
+                        {user.banned_until ? 'Unsuspend' : 'Suspend'}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        disabled={isSelf}
+                        title={
+                          isSelf
+                            ? 'You cannot modify your own account'
+                            : undefined
+                        }
+                        onClick={() => handleDelete(user.id)}
+                      >
+                        Delete
+                      </Button>
+                    </div>
+                  </td>
+                )}
               </tr>
             );
           })}

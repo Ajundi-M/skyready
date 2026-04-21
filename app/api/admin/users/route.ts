@@ -7,6 +7,7 @@ type ProfileRow = {
   display_name: string | null;
   created_at: string;
   is_admin: boolean;
+  is_super_admin: boolean;
   sessions: [{ count: number }] | [];
 };
 
@@ -19,7 +20,9 @@ export async function GET() {
   const serviceSupabase = createServiceClient();
   const { data, error } = await serviceSupabase
     .from('profiles')
-    .select('id, email, display_name, created_at, is_admin, sessions(count)')
+    .select(
+      'id, email, display_name, created_at, is_admin, is_super_admin, sessions(count)',
+    )
     .order('created_at', { ascending: false })
     .returns<ProfileRow[]>();
 
@@ -48,6 +51,7 @@ export async function GET() {
     created_at: row.created_at,
     session_count: (row.sessions as [{ count: number }])[0]?.count ?? 0,
     is_admin: row.is_admin,
+    is_super_admin: row.is_super_admin,
     banned_until: banMap.get(row.id) ?? null,
   }));
 

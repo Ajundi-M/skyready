@@ -22,7 +22,11 @@ const statusStyles: Record<InviteCode['status'], string> = {
   expired: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
 };
 
-export function InviteCodesPanel() {
+type Props = {
+  isSuperAdmin: boolean;
+};
+
+export function InviteCodesPanel({ isSuperAdmin }: Props) {
   const { toast } = useToast();
   const [codes, setCodes] = useState<InviteCode[]>([]);
   const [loading, setLoading] = useState(true);
@@ -181,7 +185,7 @@ export function InviteCodesPanel() {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex flex-col gap-1">
-                      {invite.status === 'unused' && (
+                      {isSuperAdmin && invite.status === 'unused' && (
                         <Button
                           variant="destructive"
                           size="xs"

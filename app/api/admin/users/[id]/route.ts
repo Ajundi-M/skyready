@@ -33,6 +33,19 @@ export async function PATCH(
   // are only permitted with the service role key.
   const serviceSupabase = createServiceClient();
 
+  const { data: callerProfile } = await serviceSupabase
+    .from('profiles')
+    .select('is_super_admin')
+    .eq('id', user.id)
+    .single();
+
+  if (callerProfile?.is_super_admin !== true) {
+    return Response.json(
+      { error: 'Only super admins can perform this action' },
+      { status: 403 },
+    );
+  }
+
   if (action === 'toggle_admin') {
     if (id === user.id) {
       return Response.json(
@@ -119,17 +132,30 @@ export async function DELETE(
 
   const { id } = await params;
 
+  // SERVICE ROLE: Deleting rows in sessions and profiles, and calling
+  // auth.admin.deleteUser(), all require the service role to bypass RLS
+  // and access the auth schema.
+  const serviceSupabase = createServiceClient();
+
+  const { data: callerProfile } = await serviceSupabase
+    .from('profiles')
+    .select('is_super_admin')
+    .eq('id', user.id)
+    .single();
+
+  if (callerProfile?.is_super_admin !== true) {
+    return Response.json(
+      { error: 'Only super admins can perform this action' },
+      { status: 403 },
+    );
+  }
+
   if (id === user.id) {
     return Response.json(
       { error: 'You cannot delete yourself' },
       { status: 400 },
     );
   }
-
-  // SERVICE ROLE: Deleting rows in sessions and profiles, and calling
-  // auth.admin.deleteUser(), all require the service role to bypass RLS
-  // and access the auth schema.
-  const serviceSupabase = createServiceClient();
 
   // 1. Remove all sessions for the user — RLS prevents deletion of other
   //    users' rows, so service role is required.
