@@ -171,6 +171,20 @@ export async function DELETE(
     );
   }
 
+  // 1b. Remove invite codes created by this user — created_by references
+  //     profiles.id, so this must be deleted before the profile row.
+  const { error: inviteError } = await serviceSupabase
+    .from('invite_codes')
+    .delete()
+    .eq('created_by', id);
+
+  if (inviteError) {
+    return Response.json(
+      { error: 'Failed to delete user invite codes' },
+      { status: 500 },
+    );
+  }
+
   // 2. Remove the user's profile row — RLS prevents deletion of other
   //    users' rows, so service role is required.
   const { error: profileError } = await serviceSupabase
