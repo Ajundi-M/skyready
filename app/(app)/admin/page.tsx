@@ -31,7 +31,7 @@ export default async function AdminPage() {
 
       <section className="flex flex-col gap-3">
         <h2 className="text-base font-semibold">Users</h2>
-        <UsersTable />
+        <UsersTable currentUserId={user.id} />
       </section>
     </main>
   );
