@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import VendingRing, {
   type SessionResult,
 } from '@/components/vigilance/VendingRing';
@@ -28,9 +28,11 @@ export default function VigilancePage() {
   const [result, setResult] = useState<SessionResult | null>(null);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [startError, setStartError] = useState<string | null>(null);
+  const [cancelledNotice, setCancelledNotice] = useState(false);
 
   async function handleStart() {
     setStartError(null);
+    setCancelledNotice(false);
     try {
       const res = await fetch('/api/sessions', { method: 'POST' });
       if (!res.ok) {
@@ -79,26 +81,54 @@ export default function VigilancePage() {
     }
   }
 
-  function handleCancel(r: SessionResult) {
+  function handleCancel(r?: SessionResult) {
     if (!activeSessionId) return;
+    const result =
+      r ??
+      ({
+        score: 0,
+        durationS: 0,
+        skipsEncountered: 0,
+        skipsDetected: 0,
+        falsePresses: 0,
+      } as unknown as SessionResult);
     // Fire-and-forget: mark the orphaned session as cancelled so it is not
     // left with completed_at = null. This runs when the user navigates away.
     fetch(`/api/sessions/${activeSessionId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(buildPatchBody(r, true)),
+      body: JSON.stringify(buildPatchBody(result, true)),
     }).catch(() => {});
   }
 
+  useEffect(() => {
+    if (phase !== 'playing') return;
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') {
+        handleCancel();
+        setPhase('idle');
+        setCancelledNotice(true);
+      }
+    }
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, activeSessionId]);
+
   if (phase === 'playing') {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-black">
-        <VendingRing
-          sessionDuration={duration}
-          onSessionEnd={handleSessionEnd}
-          onCancel={handleCancel}
-          showSkipColour={skipMode === 'training'}
-        />
+      <div className="fixed inset-0 z-50 bg-black overflow-hidden">
+        <div className="flex items-center justify-center min-h-screen">
+          <VendingRing
+            sessionDuration={duration}
+            onSessionEnd={handleSessionEnd}
+            onCancel={handleCancel}
+            showSkipColour={skipMode === 'training'}
+          />
+        </div>
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 text-xs text-white/30 select-none">
+          Press Esc to cancel session
+        </div>
       </div>
     );
   }
@@ -211,6 +241,11 @@ export default function VigilancePage() {
         </div>
       </div>
 
+      {cancelledNotice && (
+        <p className="text-sm text-muted-foreground">
+          Session cancelled — press Start to try again
+        </p>
+      )}
       {startError && <p className="text-destructive text-sm">{startError}</p>}
 
       <button
