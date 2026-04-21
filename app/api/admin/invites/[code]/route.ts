@@ -1,5 +1,6 @@
 import { checkCsrfOrigin } from '@/lib/security/csrf';
 import { requireAdmin } from '@/lib/auth/require-admin';
+import { createServiceClient } from '@/lib/supabase/service';
 
 export async function DELETE(
   request: Request,
@@ -32,10 +33,15 @@ export async function DELETE(
     );
   }
 
-  const { error } = await supabase
+  // SERVICE ROLE: Bypasses RLS to allow admins to delete expired unused
+  // codes. Admin identity is already verified above via requireAdmin().
+  // Only deletes the specific code requested — no over-fetching.
+  const serviceSupabase = createServiceClient();
+  const { error } = await serviceSupabase
     .from('invite_codes')
     .delete()
-    .eq('code', code);
+    .eq('code', code)
+    .eq('used', false);
 
   if (error) {
     return Response.json({ error: 'Failed to delete invite' }, { status: 500 });
