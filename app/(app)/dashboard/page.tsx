@@ -14,12 +14,7 @@ type Session = {
   metrics: { skips_detected?: number; false_presses?: number } | null;
 };
 
-/** Row returned by the PostgREST aggregate query for session stats. */
-type StatsRow = {
-  count: number;
-  max: number | null;
-  avg: number | null;
-};
+type AggregateRow = { score: number | null; accuracy: number | null };
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -29,26 +24,21 @@ export default async function DashboardPage() {
 
   const userId = user?.id ?? '';
 
-  // Two parallel queries:
-  //   1. Aggregate query — the DB computes COUNT, MAX(score), AVG(accuracy).
-  //      No row limit needed; Postgres does the aggregation server-side.
-  //   2. Table query — the 10 most recent completed sessions for display.
-  //
-  // Previously a single 50-row fetch was used for both. That approach computed
-  // stats only from the oldest 50 sessions (ascending order bug) and returned
-  // far more data than the table needed.
-  const [statsResult, tableResult] = await Promise.all([
+  const [countResult, aggregateResult, tableResult] = await Promise.all([
     supabase
       .from('sessions')
-      .select('count(), score.max(), accuracy.avg()')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .not('completed_at', 'is', null),
+    supabase
+      .from('sessions')
+      .select('score, accuracy')
       .eq('user_id', userId)
       .not('completed_at', 'is', null)
-      .returns<StatsRow[]>(),
+      .returns<AggregateRow[]>(),
     supabase
       .from('sessions')
-      .select(
-        'id, user_id, module, started_at, completed_at, duration_s, score, accuracy, metrics',
-      )
+      .select('id, started_at, duration_s, score, accuracy, metrics')
       .eq('user_id', userId)
       .not('completed_at', 'is', null)
       .order('started_at', { ascending: false })
@@ -56,13 +46,17 @@ export default async function DashboardPage() {
       .returns<Session[]>(),
   ]);
 
-  const stats = statsResult.data?.[0];
-  const totalSessions = stats?.count ?? 0;
-  const bestScore = stats?.max ?? null;
-  const avgAccuracy = stats?.avg ?? null;
-
+  const totalSessions = countResult.count ?? 0;
+  const allRows = aggregateResult.data ?? [];
+  const bestScore =
+    allRows.length > 0
+      ? Math.max(...allRows.map((r) => r.score ?? -Infinity))
+      : null;
+  const avgAccuracy =
+    allRows.length > 0
+      ? allRows.reduce((sum, r) => sum + (r.accuracy ?? 0), 0) / allRows.length
+      : null;
   const tableRows = tableResult.data ?? [];
-  // Latest score comes from the first row of the DESC-ordered table query.
   const latestScore = tableRows[0]?.score ?? null;
 
   return (
