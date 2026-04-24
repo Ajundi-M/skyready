@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { ThemeToggle } from '@/components/nav/ThemeToggle';
 
 export function TopNav({
   isAdmin,
@@ -54,6 +55,7 @@ export function TopNav({
               <span className="text-foreground">{displayName}</span>
             </div>
           )}
+          <ThemeToggle />
           <button
             onClick={handleSignOut}
             className="cursor-pointer text-muted-foreground hover:text-foreground transition-colors"
