@@ -16,13 +16,19 @@ export default async function AppLayout({
 
   const { data: profile } = (await supabase
     .from('profiles')
-    .select('is_admin')
+    .select('is_admin, display_name')
     .eq('id', user.id)
-    .single()) as { data: { is_admin: boolean } | null; error: unknown };
+    .single()) as {
+    data: { is_admin: boolean; display_name: string | null } | null;
+    error: unknown;
+  };
 
   return (
     <div>
-      <TopNav isAdmin={profile?.is_admin ?? false} />
+      <TopNav
+        isAdmin={profile?.is_admin ?? false}
+        displayName={profile?.display_name ?? user.email ?? ''}
+      />
       <main className="px-6 py-8">{children}</main>
     </div>
   );
