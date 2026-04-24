@@ -27,7 +27,7 @@ export default async function AppLayout({
     <div>
       <TopNav
         isAdmin={profile?.is_admin ?? false}
-        displayName={profile?.display_name ?? user.email ?? ''}
+        displayName={profile?.display_name ?? ''}
       />
       <main className="px-6 py-8">{children}</main>
     </div>

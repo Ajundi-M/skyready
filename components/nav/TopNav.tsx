@@ -46,15 +46,17 @@ export function TopNav({
               Admin
             </Link>
           )}
-          <div className="flex items-center gap-2 text-sm font-medium">
-            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-semibold select-none">
-              {displayName.charAt(0).toUpperCase()}
-            </span>
-            <span className="text-foreground">{displayName}</span>
-          </div>
+          {displayName && (
+            <div className="flex items-center gap-2 text-sm font-medium">
+              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-semibold select-none">
+                {displayName.charAt(0).toUpperCase()}
+              </span>
+              <span className="text-foreground">{displayName}</span>
+            </div>
+          )}
           <button
             onClick={handleSignOut}
-            className="text-muted-foreground hover:text-foreground transition-colors"
+            className="cursor-pointer text-muted-foreground hover:text-foreground transition-colors"
           >
             Sign out
           </button>
