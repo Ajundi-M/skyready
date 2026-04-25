@@ -391,13 +391,21 @@ export function useDTEngine(config: DTEngineConfig): DTEngineControls {
     finishSession();
   }, [finishSession]);
 
+  // Keep a ref to finishSession so the unmount cleanup always calls the latest
+  // version without listing it as a dep — listing it caused the cleanup to fire
+  // on every render where config changed identity, triggering onComplete early.
+  const finishSessionRef = useRef(finishSession);
+  useEffect(() => {
+    finishSessionRef.current = finishSession;
+  }); // no deps — syncs ref after every render
+
   useEffect(() => {
     return () => {
       if (phaseRef.current !== 'idle' && phaseRef.current !== 'complete') {
-        finishSession();
+        finishSessionRef.current();
       }
     };
-  }, [finishSession]);
+  }, []); // empty — fires only on unmount
 
   return { state, start, cancel };
 }
