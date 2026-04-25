@@ -39,3 +39,48 @@ export const patchSessionSchema = z
 
 export type SessionMetrics = z.infer<typeof sessionMetricsSchema>;
 export type PatchSessionBody = z.infer<typeof patchSessionSchema>;
+
+// ─── Determination Test schema ────────────────────────────────────────────────
+
+const dtStimulusMetricSchema = z.object({
+  correct: z.number().int().min(0),
+  errors: z.number().int().min(0),
+  mean_rt_ms: z.number().min(0),
+});
+
+const dtStimulusSchema = z.enum([
+  'red',
+  'blue',
+  'yellow',
+  'green',
+  'foot_left',
+  'foot_right',
+  'tone',
+]);
+
+const dtKeyMapSchema = z.record(dtStimulusSchema, z.string().max(1));
+
+const dtMetricsSchema = z.object({
+  tier: z.union([z.literal(1), z.literal(2), z.literal(3)]),
+  mode: z.enum(['action', 'reaction', 'adaptive']),
+  key_map_snapshot: dtKeyMapSchema,
+  correct: z.number().int().min(0),
+  delayed: z.number().int().min(0),
+  errors: z.number().int().min(0),
+  omissions: z.number().int().min(0),
+  total_stimuli: z.number().int().min(0),
+  mean_rt_ms: z.number().min(0),
+  median_rt_ms: z.number().min(0),
+  final_window_ms: z.number().min(0).nullable(),
+  per_stimulus: z.record(dtStimulusSchema, dtStimulusMetricSchema),
+});
+
+export const patchDTSessionSchema = z.object({
+  completed_at: z.string().datetime().optional(),
+  duration_s: z.number().int().min(0).max(3600),
+  score: z.number().int(),
+  accuracy: z.number().min(0).max(100),
+  metrics: dtMetricsSchema,
+});
+
+export type PatchDTSessionBody = z.infer<typeof patchDTSessionSchema>;
