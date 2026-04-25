@@ -1,6 +1,9 @@
 import { type NextRequest } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { patchSessionSchema } from '@/lib/schemas/session';
+import {
+  patchDTSessionSchema,
+  patchSessionSchema,
+} from '@/lib/schemas/session';
 
 export async function PATCH(
   request: NextRequest,
@@ -34,15 +37,26 @@ export async function PATCH(
     return Response.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
-  const parsed = patchSessionSchema.safeParse(body);
-  if (!parsed.success) {
+  const vigilanceParsed = patchSessionSchema.safeParse(body);
+  const dtParsed = !vigilanceParsed.success
+    ? patchDTSessionSchema.safeParse(body)
+    : null;
+
+  if (!vigilanceParsed.success && !dtParsed?.success) {
     return Response.json(
-      { error: 'Invalid payload', details: parsed.error.flatten() },
+      {
+        error: 'Invalid payload',
+        details: vigilanceParsed.error.flatten(),
+      },
       { status: 422 },
     );
   }
 
-  const { completed_at, duration_s, score, accuracy, metrics } = parsed.data;
+  const parsedData = vigilanceParsed.success
+    ? vigilanceParsed.data
+    : dtParsed!.data!;
+
+  const { completed_at, duration_s, score, accuracy, metrics } = parsedData;
 
   const { error: updateError } = await supabase
     .from('sessions')
