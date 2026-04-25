@@ -2,8 +2,8 @@
 
 import {
   DT_STIMULUS_COLOUR,
-  DT_TIER_NAMES,
-  DT_TIER_STIMULI,
+  DT_VARIANT_NAMES,
+  DT_VARIANT_STIMULI,
   type DTMetrics,
   type DTStimulus,
 } from '@/lib/determination/types';
@@ -26,7 +26,7 @@ export default function DTSessionSummary({
   const total = metrics.correct + metrics.errors + metrics.omissions;
   const pct = total === 0 ? 0 : (metrics.correct / total) * 100;
 
-  const active = DT_TIER_STIMULI[metrics.tier];
+  const active = DT_VARIANT_STIMULI[metrics.variant];
 
   const worstStimulus = active.reduce<DTStimulus | null>((worst, s) => {
     if (worst === null) return metrics.per_stimulus[s].errors > 0 ? s : null;
@@ -45,7 +45,7 @@ export default function DTSessionSummary({
         <div>
           <h1 className="text-3xl font-bold">Session Complete</h1>
           <p className="text-muted-foreground">
-            {DT_TIER_NAMES[metrics.tier]} — {modeLabel} Mode
+            {DT_VARIANT_NAMES[metrics.variant]} — {modeLabel} Mode
           </p>
         </div>
 
