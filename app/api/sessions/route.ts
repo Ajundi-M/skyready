@@ -1,7 +1,7 @@
 import { type NextRequest } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 
-export async function POST() {
+export async function POST(request: NextRequest) {
   const supabase = await createClient();
 
   const {
@@ -12,11 +12,30 @@ export async function POST() {
     return Response.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  let body: { module?: string } = {};
+  try {
+    const parsed: unknown = await request.json();
+    if (parsed && typeof parsed === 'object' && 'module' in parsed) {
+      const moduleValue = (parsed as { module?: unknown }).module;
+      if (typeof moduleValue === 'string') {
+        body = { module: moduleValue };
+      }
+    }
+  } catch {}
+
+  const allowedModules = ['vigilance', 'determination'] as const;
+  type AllowedModule = (typeof allowedModules)[number];
+  const sessionModule: AllowedModule = allowedModules.includes(
+    body.module as AllowedModule,
+  )
+    ? (body.module as AllowedModule)
+    : 'vigilance';
+
   const { data, error } = await supabase
     .from('sessions')
     .insert({
       user_id: user.id,
-      module: 'vigilance',
+      module: sessionModule,
       started_at: new Date().toISOString(),
     })
     .select('id')
