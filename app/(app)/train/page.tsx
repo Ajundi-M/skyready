@@ -48,7 +48,7 @@ export default async function TrainPage() {
           >
             <div className="flex items-center justify-between mb-1">
               <h2 className="text-xl font-semibold">Determination Test</h2>
-              <span className="text-xs font-medium bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-full px-2 py-0.5">
+              <span className="text-xs font-medium bg-amber-500/20 text-amber-700 dark:text-amber-400 border border-amber-500/30 rounded-full px-2 py-0.5">
                 Coming soon · Beta
               </span>
             </div>
