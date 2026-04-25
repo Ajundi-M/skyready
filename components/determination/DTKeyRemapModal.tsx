@@ -7,10 +7,10 @@ import {
   DT_STIMULI,
   DT_STIMULUS_COLOUR,
   DT_STIMULUS_LIMB,
-  DT_TIER_STIMULI,
+  DT_VARIANT_STIMULI,
   type DTKeyMap,
   type DTStimulus,
-  type DTTier,
+  type DTVariant,
 } from '@/lib/determination/types';
 import {
   Dialog,
@@ -23,7 +23,7 @@ import { Button } from '@/components/ui/button';
 
 type DTKeyRemapModalProps = {
   open: boolean;
-  activeTier: DTTier;
+  activeVariant: DTVariant;
   initialKeyMap: DTKeyMap;
   onSave: (newKeyMap: DTKeyMap) => void;
   onClose: () => void;
@@ -41,7 +41,7 @@ function createEmptyRowErrors(): Record<DTStimulus, string | null> {
 
 export default function DTKeyRemapModal({
   open,
-  activeTier,
+  activeVariant,
   initialKeyMap,
   onSave,
   onClose,
@@ -126,7 +126,8 @@ export default function DTKeyRemapModal({
 
         <div className="space-y-2">
           {DT_STIMULI.map((stimulus) => {
-            const isActive = DT_TIER_STIMULI[activeTier].includes(stimulus);
+            const isActive =
+              DT_VARIANT_STIMULI[activeVariant].includes(stimulus);
 
             return (
               <div key={stimulus}>
@@ -174,7 +175,9 @@ export default function DTKeyRemapModal({
                     >
                       {localMap[stimulus] === ' '
                         ? 'Space'
-                        : localMap[stimulus].toUpperCase()}
+                        : localMap[stimulus] === 'enter'
+                          ? 'Enter'
+                          : localMap[stimulus].toUpperCase()}
                     </button>
                   )}
                 </div>
