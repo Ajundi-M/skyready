@@ -14,6 +14,15 @@ export default function TrainPage() {
             Sustained attention · 5–30 min sessions
           </p>
         </Link>
+        <Link
+          href="/train/determination"
+          className="block border rounded-xl p-6 hover:bg-accent transition-colors"
+        >
+          <h2 className="text-xl font-semibold">Determination Test</h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            Multi-limb reaction · Adaptive pacing · Full aviation battery
+          </p>
+        </Link>
       </div>
     </main>
   );
