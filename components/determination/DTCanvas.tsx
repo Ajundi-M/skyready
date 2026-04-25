@@ -96,7 +96,7 @@ export default function DTCanvas({
       // ── HELPER: draw opacity ─────────────────────────────────────────────────
       // Active = 1.0, Dimmed = 0.18
       function stimulusAlpha(stimulus: DTStimulus): number {
-        return isActive(stimulus) ? 1.0 : 0.35;
+        return isActive(stimulus) ? 1.0 : 0.45;
       }
 
       // ── 2. PEDALS ──────────────────────────────────────────────────────────────
@@ -104,7 +104,7 @@ export default function DTCanvas({
 
       const pedalW = 94;
       const pedalH = 118;
-      const pedalY = Math.round(logicalHeight * 0.1);
+      const pedalY = Math.round(logicalHeight * 0.12);
       const hingeH = 14;
       const hingeY = pedalY - hingeH + 2;
       const ledgeH = 10;
@@ -220,10 +220,10 @@ export default function DTCanvas({
       };
 
       const circles: CircleDef[] = [
-        { stimulus: 'green', x: cx - 212, y: cyBase + 70, r: 62 },
+        { stimulus: 'green', x: cx - 212, y: cyBase + 90, r: 62 },
         { stimulus: 'yellow', x: cx - 78, y: cyBase + 10, r: 62 },
         { stimulus: 'red', x: cx + 78, y: cyBase + 10, r: 62 },
-        { stimulus: 'blue', x: cx + 212, y: cyBase + 70, r: 62 },
+        { stimulus: 'blue', x: cx + 212, y: cyBase + 90, r: 62 },
       ];
 
       for (const c of circles) {
