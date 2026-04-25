@@ -3,8 +3,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   DT_DEFAULT_KEY_MAP,
+  DT_STIMULUS_IS_AUDIO,
   DT_STIMULI,
-  DT_TIER_STIMULI,
+  DT_TONE_PAN,
+  DT_VARIANT_STIMULI,
   DT_TIMING,
   DT_SESSION_DURATION_MS,
   type DTKeyMap,
@@ -12,11 +14,11 @@ import {
   type DTMode,
   type DTStimulus,
   type DTStimulusMetric,
-  type DTTier,
+  type DTVariant,
 } from '@/lib/determination/types';
 
 export type DTEngineConfig = {
-  tier: DTTier;
+  variant: DTVariant;
   mode: DTMode;
   keyMap: DTKeyMap;
   isPractice: boolean;
@@ -81,6 +83,28 @@ function buildInitialState(config: DTEngineConfig): DTEngineState {
 }
 
 export function useDTEngine(config: DTEngineConfig): DTEngineControls {
+  function playTone(pan: number, audioCtx: AudioContext): void {
+    const oscillator = audioCtx.createOscillator();
+    const gainNode = audioCtx.createGain();
+    const pannerNode = audioCtx.createStereoPanner();
+
+    oscillator.type = 'sine';
+    oscillator.frequency.setValueAtTime(880, audioCtx.currentTime);
+    gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(
+      0.001,
+      audioCtx.currentTime + 0.3,
+    );
+    pannerNode.pan.setValueAtTime(pan, audioCtx.currentTime);
+
+    oscillator.connect(gainNode);
+    gainNode.connect(pannerNode);
+    pannerNode.connect(audioCtx.destination);
+
+    oscillator.start(audioCtx.currentTime);
+    oscillator.stop(audioCtx.currentTime + 0.3);
+  }
+
   const [state, setState] = useState<DTEngineState>(() =>
     buildInitialState(config),
   );
@@ -116,8 +140,9 @@ export function useDTEngine(config: DTEngineConfig): DTEngineControls {
   const correctStreakRef = useRef<number>(0);
   const windowMsRef = useRef<number>(getInitialWindowMs(config.mode));
   const activePoolRef = useRef<readonly DTStimulus[]>(
-    DT_TIER_STIMULI[config.tier],
+    DT_VARIANT_STIMULI[config.variant],
   );
+  const audioCtxRef = useRef<AudioContext | null>(null);
 
   const currentStimulusRef = useRef<DTStimulus | null>(null);
   const correctRef = useRef<number>(0);
@@ -190,6 +215,10 @@ export function useDTEngine(config: DTEngineConfig): DTEngineControls {
       rafHandleRef.current = null;
     }
     window.removeEventListener('keydown', keydownHandlerRef.current);
+    if (audioCtxRef.current) {
+      void audioCtxRef.current.close();
+      audioCtxRef.current = null;
+    }
 
     for (const stimulus of DT_STIMULI) {
       const stimulusRt = perStimulusRtRef.current[stimulus];
@@ -211,7 +240,7 @@ export function useDTEngine(config: DTEngineConfig): DTEngineControls {
     const medianRtMs = computeMedian(rtListRef.current);
 
     const metrics: DTMetrics = {
-      tier: config.tier,
+      variant: config.variant,
       mode: config.mode,
       key_map_snapshot: config.keyMap,
       correct: correctRef.current,
@@ -257,6 +286,10 @@ export function useDTEngine(config: DTEngineConfig): DTEngineControls {
           const next = pickNextStimulus();
           currentStimulusRef.current = next;
           stimulusOnsetTimeRef.current = performance.now();
+          if (DT_STIMULUS_IS_AUDIO[next] && audioCtxRef.current) {
+            const pan = DT_TONE_PAN[next] ?? 0;
+            playTone(pan, audioCtxRef.current);
+          }
           showCountdownRef.current = Number.isFinite(windowMsRef.current)
             ? windowMsRef.current
             : Number.MAX_SAFE_INTEGER;
@@ -309,7 +342,7 @@ export function useDTEngine(config: DTEngineConfig): DTEngineControls {
     reverseKeyMapRef.current = {};
     correctStreakRef.current = 0;
     windowMsRef.current = getInitialWindowMs(config.mode);
-    activePoolRef.current = DT_TIER_STIMULI[config.tier];
+    activePoolRef.current = DT_VARIANT_STIMULI[config.variant];
     currentStimulusRef.current = null;
     correctRef.current = 0;
     errorsRef.current = 0;
@@ -331,6 +364,8 @@ export function useDTEngine(config: DTEngineConfig): DTEngineControls {
       ).toLowerCase();
       reverseKeyMapRef.current[normalizedKey] = stimulus as DTStimulus;
     }
+
+    audioCtxRef.current = new AudioContext();
 
     keydownHandlerRef.current = (event: KeyboardEvent): void => {
       const key = event.key.toLowerCase();
