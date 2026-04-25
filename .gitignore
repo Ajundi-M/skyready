@@ -41,3 +41,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local-only context files — never push to GitHub
+CLAUDE.md
+CURSOR_TASKS.md
+CURSOR_TASKS_V2.md
