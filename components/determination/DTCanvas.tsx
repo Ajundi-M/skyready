@@ -3,18 +3,19 @@
 import { useEffect, useRef } from 'react';
 import {
   DT_STIMULUS_COLOUR,
-  DT_TIER_NAMES,
-  DT_TIER_STIMULI,
+  DT_STIMULUS_IS_AUDIO,
+  DT_VARIANT_NAMES,
+  DT_VARIANT_STIMULI,
   type DTKeyMap,
   type DTMode,
-  type DTTier,
+  type DTVariant,
 } from '@/lib/determination/types';
 import { type DTEngineState } from '@/lib/determination/useDTEngine';
 
 type DTCanvasProps = {
   engineState: DTEngineState;
   mode: DTMode;
-  tier: DTTier;
+  variant: DTVariant;
   keyMap: DTKeyMap;
 };
 
@@ -51,7 +52,7 @@ function drawRoundedRect(
 export default function DTCanvas({
   engineState,
   mode,
-  tier,
+  variant,
   keyMap,
 }: DTCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -83,13 +84,26 @@ export default function DTCanvas({
 
       const stimulus = engineState.currentStimulus;
       if (stimulus !== null) {
-        ctx.beginPath();
-        ctx.arc(cx, cy, 80, 0, Math.PI * 2);
-        if (stimulus === 'tone') {
-          ctx.strokeStyle = '#FFFFFF';
+        if (DT_STIMULUS_IS_AUDIO[stimulus]) {
+          // Audio tone — draw ring with L or R label
+          const pan = stimulus === 'tone_left' ? 'L' : 'R';
+          const colour = stimulus === 'tone_left' ? '#A855F7' : '#EC4899';
+          ctx.beginPath();
+          ctx.arc(cx, cy, 80, 0, Math.PI * 2);
+          ctx.strokeStyle = colour;
           ctx.lineWidth = 6;
           ctx.stroke();
+          // Label inside the ring
+          ctx.font = 'bold 48px Arial';
+          ctx.fillStyle = colour;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(pan, cx, cy);
+          ctx.textAlign = 'left';
+          ctx.textBaseline = 'top';
         } else {
+          ctx.beginPath();
+          ctx.arc(cx, cy, 80, 0, Math.PI * 2);
           ctx.fillStyle = DT_STIMULUS_COLOUR[stimulus];
           ctx.fill();
         }
@@ -112,11 +126,7 @@ export default function DTCanvas({
       const secs = Math.floor((remaining % 60_000) / 1000);
 
       ctx.fillText(`Mode: ${mode.toUpperCase()}`, hudX, hudY);
-      ctx.fillText(
-        `Tier ${tier} - ${DT_TIER_NAMES[tier]}`,
-        hudX,
-        hudY + lineHeight,
-      );
+      ctx.fillText(DT_VARIANT_NAMES[variant], hudX, hudY + lineHeight);
       ctx.fillText(
         `Time: ${mins}:${String(secs).padStart(2, '0')}`,
         hudX,
@@ -137,7 +147,7 @@ export default function DTCanvas({
       }
 
       if (engineState.phase === 'practice' || engineState.phase === 'live') {
-        const activeStimuli = DT_TIER_STIMULI[tier];
+        const activeStimuli = DT_VARIANT_STIMULI[variant];
         const dotRadius = 8;
         const padX = 12;
         const padY = 8;
@@ -208,7 +218,7 @@ export default function DTCanvas({
     return () => {
       observer.disconnect();
     };
-  }, [engineState, mode, tier, keyMap]);
+  }, [engineState, mode, variant, keyMap]);
 
   return <canvas ref={canvasRef} className="w-full h-full" />;
 }
