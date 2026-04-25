@@ -12,7 +12,7 @@ import {
   type DTKeyMap,
   type DTMetrics,
   type DTMode,
-  type DTTier,
+  type DTVariant,
 } from '@/lib/determination/types';
 
 type PagePhase = 'preSession' | 'practice' | 'live' | 'summary' | 'saving';
@@ -21,7 +21,7 @@ export default function DeterminationPage() {
   const router = useRouter();
 
   const [pagePhase, setPagePhase] = useState<PagePhase>('preSession');
-  const [tier, setTier] = useState<DTTier | null>(null);
+  const [variant, setVariant] = useState<DTVariant | null>(null);
   const [mode, setMode] = useState<DTMode | null>(null);
   const [keyMap, setKeyMap] = useState<DTKeyMap>(DT_DEFAULT_KEY_MAP);
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -31,7 +31,7 @@ export default function DeterminationPage() {
   const [startError, setStartError] = useState<string | null>(null);
 
   // Safe fallbacks so hooks always receive valid props
-  const safeTier = tier ?? 1;
+  const safeVariant: DTVariant = variant ?? 'visual';
   const safeMode = mode ?? 'action';
 
   // Guards handleLiveComplete from firing after the user cancels mid-live.
@@ -51,7 +51,7 @@ export default function DeterminationPage() {
 
   // Always mounted — hooks cannot be conditional.
   const liveEngine = useDTEngine({
-    tier: safeTier,
+    variant: safeVariant,
     mode: safeMode,
     keyMap,
     isPractice: false,
@@ -63,7 +63,7 @@ export default function DeterminationPage() {
   }, []);
 
   const practiceEngine = useDTEngine({
-    tier: safeTier,
+    variant: safeVariant,
     mode: safeMode,
     keyMap,
     isPractice: true,
@@ -73,9 +73,9 @@ export default function DeterminationPage() {
   // ── Handlers ──────────────────────────────────────────────────────────────
 
   const handleStart = useCallback(
-    async (config: { tier: DTTier; mode: DTMode; keyMap: DTKeyMap }) => {
+    async (config: { variant: DTVariant; mode: DTMode; keyMap: DTKeyMap }) => {
       setStartError(null);
-      setTier(config.tier);
+      setVariant(config.variant);
       setMode(config.mode);
       setKeyMap(config.keyMap);
 
@@ -217,7 +217,7 @@ export default function DeterminationPage() {
         />
         <DTKeyRemapModal
           open={remapOpen}
-          activeTier={safeTier}
+          activeVariant={safeVariant}
           initialKeyMap={keyMap}
           onSave={handleKeyMapSave}
           onClose={() => setRemapOpen(false)}
@@ -234,7 +234,7 @@ export default function DeterminationPage() {
             pagePhase === 'practice' ? practiceEngine.state : liveEngine.state
           }
           mode={safeMode}
-          tier={safeTier}
+          variant={safeVariant}
           keyMap={keyMap}
         />
         <div
