@@ -15,9 +15,7 @@ const dtStimulusSchema = z.enum([
 const schema = z.object({
   preferences: z.object({
     dt_keys: z.record(dtStimulusSchema, z.string().max(1)).optional(),
-    dt_last_tier: z
-      .union([z.literal(1), z.literal(2), z.literal(3)])
-      .optional(),
+    dt_last_variant: z.enum(['visual', 'visual_oral']).optional(),
     dt_last_mode: z.enum(['action', 'reaction', 'adaptive']).optional(),
   }),
 });
