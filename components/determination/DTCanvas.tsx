@@ -8,6 +8,7 @@ import {
   DT_VARIANT_STIMULI,
   type DTKeyMap,
   type DTMode,
+  type DTStimulus,
   type DTVariant,
 } from '@/lib/determination/types';
 import { type DTEngineState } from '@/lib/determination/useDTEngine';
@@ -58,13 +59,13 @@ export default function DTCanvas({
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+    function draw(): void {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const ctxOrNull = canvas.getContext('2d');
+      if (!ctxOrNull) return;
+      const ctx: CanvasRenderingContext2D = ctxOrNull;
 
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    const draw = (): void => {
       const rect = canvas.getBoundingClientRect();
       const logicalWidth = rect.width;
       const logicalHeight = rect.height;
@@ -72,51 +73,206 @@ export default function DTCanvas({
 
       canvas.width = logicalWidth * dpr;
       canvas.height = logicalHeight * dpr;
-
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.scale(dpr, dpr);
 
       const cx = logicalWidth / 2;
-      const cy = logicalHeight / 2;
+      const cyBase = logicalHeight * 0.62;
 
-      ctx.fillStyle = '#000000';
+      // 1. BACKGROUND
+      ctx.fillStyle = '#080808';
       ctx.fillRect(0, 0, logicalWidth, logicalHeight);
 
-      const stimulus = engineState.currentStimulus;
-      if (stimulus !== null) {
-        if (DT_STIMULUS_IS_AUDIO[stimulus]) {
-          // Audio tone — draw ring with L or R label
-          const pan = stimulus === 'tone_left' ? 'L' : 'R';
-          const colour = stimulus === 'tone_left' ? '#A855F7' : '#EC4899';
-          ctx.beginPath();
-          ctx.arc(cx, cy, 80, 0, Math.PI * 2);
-          ctx.strokeStyle = colour;
-          ctx.lineWidth = 6;
-          ctx.stroke();
-          // Label inside the ring
-          ctx.font = 'bold 48px Arial';
-          ctx.fillStyle = colour;
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.fillText(pan, cx, cy);
-          ctx.textAlign = 'left';
-          ctx.textBaseline = 'top';
-        } else {
-          ctx.beginPath();
-          ctx.arc(cx, cy, 80, 0, Math.PI * 2);
-          ctx.fillStyle = DT_STIMULUS_COLOUR[stimulus];
-          ctx.fill();
-        }
+      // ── STIMULUS DEFINITIONS ────────────────────────────────────────────────
+
+      const activeStimuli = DT_VARIANT_STIMULI[variant];
+      const current = engineState.currentStimulus;
+
+      // ── HELPER: is a stimulus active right now? ──────────────────────────────
+      function isActive(stimulus: DTStimulus): boolean {
+        return current === stimulus;
       }
 
-      ctx.font = 'bold 18px Arial';
-      ctx.fillStyle = '#FFFFFF';
-      ctx.textBaseline = 'top';
-      ctx.textAlign = 'left';
+      // ── HELPER: draw opacity ─────────────────────────────────────────────────
+      // Active = 1.0, Dimmed = 0.18
+      function stimulusAlpha(stimulus: DTStimulus): number {
+        return isActive(stimulus) ? 1.0 : 0.18;
+      }
 
-      const hudX = 24;
-      const hudY = 32;
-      const lineHeight = 28;
+      // ── 2. PEDALS ──────────────────────────────────────────────────────────────
+      // Only draw pedals if variant includes foot stimuli (always true for both variants)
+
+      const pedalW = 94;
+      const pedalH = 118;
+      const pedalY = 58;
+      const hingeH = 14;
+      const hingeY = pedalY - hingeH + 2;
+      const ledgeH = 10;
+
+      // DIMMED colour values
+      const dimPedalFill = '#2e2e2e';
+      const dimHingeFill = '#3a3a3a';
+      const dimStroke = '#4a4a4a';
+      const dimDotFill = '#1a1a1a';
+      const dimLabelCol = '#555555';
+
+      // ACTIVE colour values
+      const actPedalFill = '#5c5c5c';
+      const actHingeFill = '#a0a0a0';
+      const actStroke = '#d0d0d0';
+      const actDotFill = '#888888';
+      const actLabelCol = '#ffffff';
+
+      function drawPedal(
+        pedX: number,
+        stimulus: DTStimulus,
+        label: string,
+        keyLabel: string,
+      ): void {
+        const active = isActive(stimulus);
+        const pedalFill = active ? actPedalFill : dimPedalFill;
+        const hingeFill = active ? actHingeFill : dimHingeFill;
+        const stroke = active ? actStroke : dimStroke;
+        const dotFill = active ? actDotFill : dimDotFill;
+        const labelCol = active ? actLabelCol : dimLabelCol;
+        const sw = active ? 2 : 1;
+
+        // Hinge bar (top)
+        drawRoundedRect(ctx, pedX, hingeY, pedalW, hingeH, 5);
+        ctx.fillStyle = hingeFill;
+        ctx.fill();
+        ctx.strokeStyle = stroke;
+        ctx.lineWidth = sw;
+        ctx.stroke();
+
+        // Hinge bolts
+        const boltY = hingeY + hingeH / 2;
+        ctx.beginPath();
+        ctx.arc(pedX + 10, boltY, 3, 0, Math.PI * 2);
+        ctx.fillStyle = active ? '#dddddd' : '#555555';
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(pedX + pedalW - 10, boltY, 3, 0, Math.PI * 2);
+        ctx.fillStyle = active ? '#dddddd' : '#555555';
+        ctx.fill();
+
+        // Main pedal body
+        drawRoundedRect(ctx, pedX, pedalY, pedalW, pedalH, 6);
+        ctx.fillStyle = pedalFill;
+        ctx.fill();
+        ctx.strokeStyle = stroke;
+        ctx.lineWidth = sw;
+        ctx.stroke();
+
+        // Grip dots — 3 cols × 4 rows
+        const colX = [pedX + 25, pedX + 47, pedX + 69];
+        const rowY = [pedalY + 21, pedalY + 40, pedalY + 59, pedalY + 78];
+        for (const rx of colX) {
+          for (const ry of rowY) {
+            ctx.beginPath();
+            ctx.arc(rx, ry, 4.5, 0, Math.PI * 2);
+            ctx.fillStyle = dotFill;
+            ctx.fill();
+          }
+        }
+
+        // Bottom ledge
+        drawRoundedRect(ctx, pedX, pedalY + pedalH, pedalW, ledgeH, 4);
+        ctx.fillStyle = active ? '#999999' : '#333333';
+        ctx.fill();
+        ctx.strokeStyle = stroke;
+        ctx.lineWidth = sw;
+        ctx.stroke();
+
+        // Label below pedal
+        ctx.font = 'bold 11px Arial';
+        ctx.fillStyle = labelCol;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        ctx.fillText(
+          `${label} · ${keyLabel === ' ' ? 'SPC' : keyMap[stimulus].toUpperCase()}`,
+          pedX + pedalW / 2,
+          pedalY + pedalH + ledgeH + 8,
+        );
+      }
+
+      // Left pedal — foot_left
+      const leftPedalX = cx - pedalW - 16;
+      const rightPedalX = cx + 16;
+
+      if (activeStimuli.includes('foot_left')) {
+        drawPedal(leftPedalX, 'foot_left', 'LEFT', 'Z');
+      }
+      if (activeStimuli.includes('foot_right')) {
+        drawPedal(rightPedalX, 'foot_right', 'RIGHT', '/');
+      }
+
+      // ── 3. COLOUR CIRCLES ──────────────────────────────────────────────────────
+      // Layout: green far-left lower, yellow left-inner higher,
+      //         red right-inner higher, blue far-right lower
+      // Only draw circles that are in the active stimulus pool
+
+      type CircleDef = {
+        stimulus: DTStimulus;
+        x: number;
+        y: number;
+        r: number;
+      };
+
+      const circles: CircleDef[] = [
+        { stimulus: 'green', x: cx - 212, y: cyBase + 50, r: 62 },
+        { stimulus: 'yellow', x: cx - 78, y: cyBase + 15, r: 62 },
+        { stimulus: 'red', x: cx + 78, y: cyBase + 15, r: 62 },
+        { stimulus: 'blue', x: cx + 212, y: cyBase + 50, r: 62 },
+      ];
+
+      for (const c of circles) {
+        if (!activeStimuli.includes(c.stimulus)) continue;
+
+        const alpha = stimulusAlpha(c.stimulus);
+        const colour = DT_STIMULUS_COLOUR[c.stimulus];
+        const active = isActive(c.stimulus);
+
+        ctx.globalAlpha = alpha;
+        ctx.beginPath();
+        ctx.arc(c.x, c.y, c.r, 0, Math.PI * 2);
+        ctx.fillStyle = colour;
+        ctx.fill();
+
+        if (active) {
+          ctx.strokeStyle = colour;
+          ctx.lineWidth = 2.5;
+          ctx.stroke();
+        }
+        ctx.globalAlpha = 1.0;
+
+        // Key label inside circle
+        const keyVal = keyMap[c.stimulus] ?? '';
+        const keyDisplay = keyVal === ' ' ? 'SPC' : keyVal.toUpperCase();
+        ctx.globalAlpha = active ? 1.0 : 0.5;
+        ctx.font = 'bold 14px Arial';
+        ctx.fillStyle = active ? '#ffffff' : colour;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(keyDisplay, c.x, c.y);
+        ctx.globalAlpha = 1.0;
+      }
+
+      // ── 4. TONE STIMULI ────────────────────────────────────────────────────────
+      // NO visual rendering for tone_left or tone_right.
+      // Audio only. Canvas does not change when a tone plays.
+      // This section is intentionally empty.
+
+      // ── 5. HUD (top-left) ──────────────────────────────────────────────────────
+      ctx.font = 'bold 14px Arial';
+      ctx.fillStyle = '#ffffff';
+      ctx.globalAlpha = 0.65;
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'top';
+
+      const hudX = 22;
+      const hudY = 28;
+      const lineH = 20;
 
       const remaining = Math.max(
         0,
@@ -126,95 +282,98 @@ export default function DTCanvas({
       const secs = Math.floor((remaining % 60_000) / 1000);
 
       ctx.fillText(`Mode: ${mode.toUpperCase()}`, hudX, hudY);
-      ctx.fillText(DT_VARIANT_NAMES[variant], hudX, hudY + lineHeight);
+      ctx.fillText(DT_VARIANT_NAMES[variant], hudX, hudY + lineH);
       ctx.fillText(
         `Time: ${mins}:${String(secs).padStart(2, '0')}`,
         hudX,
-        hudY + lineHeight * 2,
+        hudY + lineH * 2,
       );
       ctx.fillText(
         `Correct: ${engineState.correct}   Errors: ${engineState.errors}`,
         hudX,
-        hudY + lineHeight * 3,
+        hudY + lineH * 3,
       );
+      ctx.globalAlpha = 1.0;
 
+      // ── 6. PRACTICE LABEL ──────────────────────────────────────────────────────
       if (engineState.phase === 'practice') {
-        ctx.font = '16px Arial';
+        ctx.font = '15px Arial';
         ctx.fillStyle = '#FACC15';
+        ctx.globalAlpha = 0.9;
         ctx.textAlign = 'center';
-        ctx.fillText('PRACTICE - responses not recorded', cx, 80);
-        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+        ctx.fillText('PRACTICE — responses not recorded', cx, 22);
+        ctx.globalAlpha = 1.0;
       }
 
+      // ── 7. KEY INDICATOR PILLS (practice phase only, bottom center) ────────────
       if (engineState.phase === 'practice' || engineState.phase === 'live') {
-        const activeStimuli = DT_VARIANT_STIMULI[variant];
-        const dotRadius = 8;
-        const padX = 12;
-        const padY = 8;
-        const gap = 12;
+        const pillStimuli = activeStimuli.filter(
+          (s) => !DT_STIMULUS_IS_AUDIO[s],
+        );
 
-        ctx.globalAlpha = engineState.phase === 'practice' ? 1.0 : 0.2;
-        ctx.font = 'bold 14px Arial';
-        ctx.textBaseline = 'middle';
+        const dotR = 7;
+        const padX = 10;
+        const padY = 6;
+        const gap = 8;
 
-        const pills = activeStimuli.map((stimulus) => {
+        ctx.font = 'bold 12px Arial';
+
+        const pills = pillStimuli.map((stimulus) => {
+          const keyVal = keyMap[stimulus];
           const keyLabel =
-            keyMap[stimulus] === ' ' ? 'SPC' : keyMap[stimulus].toUpperCase();
-          const keyLabelWidth = ctx.measureText(keyLabel).width;
-          const pillWidth = dotRadius * 2 + 8 + keyLabelWidth + padX * 2;
-          const pillHeight = dotRadius * 2 + padY * 2;
-          return { stimulus, keyLabel, pillWidth, pillHeight };
+            keyVal === ' '
+              ? 'SPC'
+              : keyVal === 'enter'
+                ? 'ENT'
+                : keyVal.toUpperCase();
+          const keyW = ctx.measureText(keyLabel).width;
+          const pillW = dotR * 2 + 6 + keyW + padX * 2;
+          const pillH = dotR * 2 + padY * 2;
+          return { stimulus, keyLabel, pillW, pillH };
         });
 
-        const totalRowWidth =
-          pills.reduce((sum, pill) => sum + pill.pillWidth, 0) +
-          gap * Math.max(0, pills.length - 1);
-        let pillX = cx - totalRowWidth / 2;
-        const rowBottom = logicalHeight - 48;
+        const totalW =
+          pills.reduce((s, p) => s + p.pillW, 0) + gap * (pills.length - 1);
+        let pillX = cx - totalW / 2;
+        const pillY = logicalHeight - 44;
+
+        ctx.globalAlpha = engineState.phase === 'practice' ? 1.0 : 0.2;
 
         for (const pill of pills) {
-          const pillY = rowBottom - pill.pillHeight;
-
-          drawRoundedRect(
-            ctx,
-            pillX,
-            pillY,
-            pill.pillWidth,
-            pill.pillHeight,
-            12,
-          );
+          const pY = pillY - pill.pillH;
+          drawRoundedRect(ctx, pillX, pY, pill.pillW, pill.pillH, 12);
           ctx.fillStyle = '#1F2937';
           ctx.fill();
           ctx.strokeStyle = '#374151';
           ctx.lineWidth = 1;
           ctx.stroke();
 
-          const dotCx = pillX + padX + dotRadius;
-          const dotCy = pillY + pill.pillHeight / 2;
-
+          const dotCx = pillX + padX + dotR;
+          const dotCy = pY + pill.pillH / 2;
           ctx.beginPath();
-          ctx.arc(dotCx, dotCy, dotRadius, 0, Math.PI * 2);
+          ctx.arc(dotCx, dotCy, dotR, 0, Math.PI * 2);
           ctx.fillStyle = DT_STIMULUS_COLOUR[pill.stimulus];
           ctx.fill();
 
-          ctx.fillStyle = '#FFFFFF';
-          ctx.fillText(pill.keyLabel, dotCx + dotRadius + 8, dotCy);
+          ctx.fillStyle = '#ffffff';
+          ctx.textAlign = 'left';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(pill.keyLabel, dotCx + dotR + 6, dotCy);
 
-          pillX += pill.pillWidth + gap;
+          pillX += pill.pillW + gap;
         }
 
         ctx.globalAlpha = 1.0;
-        ctx.textBaseline = 'top';
       }
-    };
+    }
 
     draw();
 
     const observer = new ResizeObserver(() => {
       draw();
     });
-    observer.observe(canvas);
-
+    observer.observe(canvasRef.current!);
     return () => {
       observer.disconnect();
     };
