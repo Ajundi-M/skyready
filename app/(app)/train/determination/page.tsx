@@ -60,8 +60,7 @@ export default function DeterminationPage() {
 
   const handlePracticeComplete = useCallback(() => {
     setPagePhase('live');
-    liveEngine.start();
-  }, [liveEngine]);
+  }, []);
 
   const practiceEngine = useDTEngine({
     tier: safeTier,
@@ -95,9 +94,8 @@ export default function DeterminationPage() {
       setSessionId(id);
       setShowEscHint(true);
       setPagePhase('practice');
-      practiceEngine.start();
     },
-    [practiceEngine],
+    [],
   );
 
   const handleCancel = useCallback(() => {
@@ -189,6 +187,22 @@ export default function DeterminationPage() {
     const t = setTimeout(() => setShowEscHint(false), 3000);
     return () => clearTimeout(t);
   }, [showEscHint]);
+
+  // ── Phase-driven engine starts ────────────────────────────────────────────
+  // Calling start() from a useEffect guarantees the engine was created with
+  // the correct tier/mode/keyMap from the current render, not a stale closure.
+
+  useEffect(() => {
+    if (pagePhase === 'practice') {
+      practiceEngine.start();
+    }
+  }, [pagePhase]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (pagePhase === 'live') {
+      liveEngine.start();
+    }
+  }, [pagePhase]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Render ────────────────────────────────────────────────────────────────
   // TopNav and auth guard are both provided by app/(app)/layout.tsx.
