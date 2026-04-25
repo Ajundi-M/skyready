@@ -55,13 +55,14 @@ const dtStimulusSchema = z.enum([
   'green',
   'foot_left',
   'foot_right',
-  'tone',
+  'tone_left',
+  'tone_right',
 ]);
 
-const dtKeyMapSchema = z.record(dtStimulusSchema, z.string().max(1));
+const dtKeyMapSchema = z.record(dtStimulusSchema, z.string());
 
 const dtMetricsSchema = z.object({
-  tier: z.union([z.literal(1), z.literal(2), z.literal(3)]),
+  variant: z.enum(['visual', 'visual_oral']),
   mode: z.enum(['action', 'reaction', 'adaptive']),
   key_map_snapshot: dtKeyMapSchema,
   correct: z.number().int().min(0),
