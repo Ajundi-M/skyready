@@ -6,26 +6,32 @@ import { Skeleton } from '@/components/ui/skeleton';
 import {
   DT_DEFAULT_KEY_MAP,
   DT_MODES,
+  DT_MODE_NAMES,
   DT_MODE_DESCRIPTIONS,
+  DT_MODE_DETAILS,
   DT_STIMULUS_COLOUR,
   DT_STIMULUS_LIMB,
-  DT_TIER_DESCRIPTIONS,
-  DT_TIER_NAMES,
-  DT_TIER_STIMULI,
-  DT_TIERS,
+  DT_VARIANT_STIMULI,
+  DT_VARIANTS,
+  DT_VARIANT_NAMES,
+  DT_VARIANT_COUNTS,
   type DTKeyMap,
   type DTMode,
-  type DTTier,
+  type DTVariant,
 } from '@/lib/determination/types';
 
 type DTPreSessionScreenProps = {
-  onStart: (config: { tier: DTTier; mode: DTMode; keyMap: DTKeyMap }) => void;
+  onStart: (config: {
+    variant: DTVariant;
+    mode: DTMode;
+    keyMap: DTKeyMap;
+  }) => void;
   onEditKeys: () => void;
 };
 
 type PreferencesResponse = {
   preferences?: {
-    dt_last_tier?: DTTier;
+    dt_last_variant?: DTVariant;
     dt_last_mode?: DTMode;
     dt_keys?: Partial<DTKeyMap>;
   };
@@ -35,10 +41,13 @@ export default function DTPreSessionScreen({
   onStart,
   onEditKeys,
 }: DTPreSessionScreenProps) {
-  const [selectedTier, setSelectedTier] = useState<DTTier | null>(null);
+  const [selectedVariant, setSelectedVariant] = useState<DTVariant | null>(
+    null,
+  );
   const [selectedMode, setSelectedMode] = useState<DTMode | null>(null);
   const [keyMap, setKeyMap] = useState<DTKeyMap>(DT_DEFAULT_KEY_MAP);
   const [loadingPrefs, setLoadingPrefs] = useState<boolean>(true);
+  const [learnMoreOpen, setLearnMoreOpen] = useState<boolean>(false);
 
   useEffect(() => {
     const loadPreferences = async () => {
@@ -56,8 +65,8 @@ export default function DTPreSessionScreen({
           return;
         }
 
-        if (preferences.dt_last_tier) {
-          setSelectedTier(preferences.dt_last_tier);
+        if (preferences.dt_last_variant) {
+          setSelectedVariant(preferences.dt_last_variant);
         }
         if (preferences.dt_last_mode) {
           setSelectedMode(preferences.dt_last_mode);
@@ -75,30 +84,30 @@ export default function DTPreSessionScreen({
     void loadPreferences();
   }, []);
 
-  const canStart = selectedTier !== null && selectedMode !== null;
-
-  const getTierNumberClass = (tier: DTTier): string => {
-    if (tier === 1) return 'text-green-400';
-    if (tier === 2) return 'text-blue-400';
-    return 'text-purple-400';
-  };
+  function displayKey(key: string): string {
+    if (key === ' ') return 'Space';
+    if (key === 'enter') return 'Enter';
+    return key;
+  }
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-8">
       <div className="w-full max-w-2xl space-y-8">
+        {/* Heading */}
         <div className="space-y-2">
           <h1 className="text-3xl font-bold">Determination Test</h1>
           <p className="text-muted-foreground">Configure your session</p>
         </div>
 
+        {/* Section 1 — Variant selector */}
         <section className="space-y-4">
-          <h2 className="text-xl font-semibold">Choose Tier</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {DT_TIERS.map((tier) => {
-              const isSelected = selectedTier === tier;
+          <h2 className="text-xl font-semibold">Choose Test Type</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {DT_VARIANTS.map((variant) => {
+              const isSelected = selectedVariant === variant;
               return (
                 <div
-                  key={tier}
+                  key={variant}
                   role="button"
                   tabIndex={0}
                   className={[
@@ -107,62 +116,121 @@ export default function DTPreSessionScreen({
                       ? 'border-white bg-accent'
                       : 'border-border bg-card hover:bg-accent/50',
                   ].join(' ')}
-                  onClick={() => setSelectedTier(tier)}
+                  onClick={() => setSelectedVariant(variant)}
                   onKeyDown={(event) => {
                     if (event.key === 'Enter' || event.key === ' ') {
                       event.preventDefault();
-                      setSelectedTier(tier);
+                      setSelectedVariant(variant);
                     }
                   }}
                 >
-                  <div
-                    className={`text-5xl font-bold ${getTierNumberClass(tier)}`}
-                  >
-                    {tier}
+                  <div className="text-xl font-semibold">
+                    {DT_VARIANT_NAMES[variant]}
                   </div>
-                  <div className="font-medium">{DT_TIER_NAMES[tier]}</div>
-                  <p className="text-sm text-muted-foreground">
-                    {DT_TIER_DESCRIPTIONS[tier]}
-                  </p>
+                  <div className="text-sm text-muted-foreground">
+                    {DT_VARIANT_COUNTS[variant]}
+                  </div>
                   <div className="flex items-center gap-2">
-                    {DT_TIER_STIMULI[tier].map((stimulus) => (
+                    {DT_VARIANT_STIMULI[variant].map((stim) => (
                       <span
-                        key={stimulus}
-                        className="inline-block h-2 w-2 rounded-full"
+                        key={stim}
+                        className="inline-block rounded-full"
                         style={{
-                          backgroundColor: DT_STIMULUS_COLOUR[stimulus],
+                          width: '8px',
+                          height: '8px',
+                          backgroundColor: DT_STIMULUS_COLOUR[stim],
                         }}
                       />
                     ))}
                   </div>
+                  {variant === 'visual_oral' && (
+                    <div className="mt-3 flex items-center gap-2 rounded-md bg-amber-950/50 border border-amber-700/50 px-3 py-2">
+                      <span className="text-amber-400 text-sm">🎧</span>
+                      <span className="text-amber-300 text-xs">
+                        Headphones required
+                      </span>
+                    </div>
+                  )}
                 </div>
               );
             })}
           </div>
         </section>
 
+        {/* Section 2 — Mode selector */}
         <section className="space-y-4">
           <h2 className="text-xl font-semibold">Choose Mode</h2>
-          <div className="flex flex-wrap gap-3">
-            {DT_MODES.map((mode) => (
-              <Button
-                key={mode}
-                variant={selectedMode === mode ? 'default' : 'outline'}
-                className="flex flex-col items-center p-4 h-auto"
-                onClick={() => setSelectedMode(mode)}
-              >
-                <span className="font-semibold">
-                  {mode.charAt(0).toUpperCase() + mode.slice(1)}
-                </span>
-                <span className="text-xs opacity-70">
-                  {DT_MODE_DESCRIPTIONS[mode]}
-                </span>
-              </Button>
-            ))}
+          <div className="space-y-3">
+            {DT_MODES.map((mode) => {
+              const isSelected = selectedMode === mode;
+              return (
+                <div
+                  key={mode}
+                  role="button"
+                  tabIndex={0}
+                  className={[
+                    'rounded-xl border p-4 space-y-1 transition-colors cursor-pointer',
+                    isSelected
+                      ? 'border-white bg-accent'
+                      : 'border-border bg-card hover:bg-accent/50',
+                  ].join(' ')}
+                  onClick={() => setSelectedMode(mode)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault();
+                      setSelectedMode(mode);
+                    }
+                  }}
+                >
+                  <div className="font-semibold">{DT_MODE_NAMES[mode]}</div>
+                  <div className="text-sm text-muted-foreground">
+                    {DT_MODE_DESCRIPTIONS[mode]}
+                  </div>
+                </div>
+              );
+            })}
           </div>
+
+          {/* Learn more accordion */}
+          <button
+            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mt-2"
+            onClick={() => setLearnMoreOpen(!learnMoreOpen)}
+          >
+            <span>{learnMoreOpen ? '▲' : '▼'}</span>
+            <span>
+              {learnMoreOpen ? 'Hide details' : 'Learn more about the modes'}
+            </span>
+          </button>
+
+          {learnMoreOpen && (
+            <div className="mt-4 rounded-xl border border-border bg-card/50 overflow-hidden">
+              {DT_MODES.map((mode) => {
+                const details = DT_MODE_DETAILS[mode];
+                return (
+                  <div
+                    key={mode}
+                    className="p-4 border-b border-border last:border-0"
+                  >
+                    <p className="font-semibold mb-2">{DT_MODE_NAMES[mode]}</p>
+                    <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
+                      <dt className="text-muted-foreground">Best for</dt>
+                      <dd>{details.bestFor}</dd>
+                      <dt className="text-muted-foreground">Measures</dt>
+                      <dd>{details.measures}</dd>
+                      <dt className="text-muted-foreground">Pressure</dt>
+                      <dd>{details.pressure}</dd>
+                      <dt className="text-muted-foreground">Duration</dt>
+                      <dd>{details.duration}</dd>
+                    </dl>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </section>
 
-        {selectedTier !== null && (
+        {/* Section 3 — Key assignments (only when a variant is selected) */}
+        {selectedVariant !== null && (
           <section className="space-y-4">
             <h2 className="text-xl font-semibold">Key Assignments</h2>
 
@@ -188,7 +256,7 @@ export default function DTPreSessionScreen({
                     </tr>
                   </thead>
                   <tbody>
-                    {DT_TIER_STIMULI[selectedTier].map((stimulus) => (
+                    {DT_VARIANT_STIMULI[selectedVariant].map((stimulus) => (
                       <tr key={stimulus} className="border-t border-border">
                         <td className="px-3 py-2">
                           <span
@@ -199,15 +267,13 @@ export default function DTPreSessionScreen({
                           />
                         </td>
                         <td className="px-3 py-2 capitalize">
-                          {stimulus.replace('_', ' ')}
+                          {stimulus.replace(/_/g, ' ')}
                         </td>
                         <td className="px-3 py-2 text-muted-foreground">
                           {DT_STIMULUS_LIMB[stimulus]}
                         </td>
                         <td className="px-3 py-2 font-mono">
-                          {keyMap[stimulus] === ' '
-                            ? 'Space'
-                            : keyMap[stimulus]}
+                          {displayKey(keyMap[stimulus])}
                         </td>
                       </tr>
                     ))}
@@ -222,16 +288,17 @@ export default function DTPreSessionScreen({
           </section>
         )}
 
+        {/* Start button */}
         <Button
           className="w-full"
           variant="default"
           size="lg"
-          disabled={!canStart}
+          disabled={selectedVariant === null || selectedMode === null}
           onClick={() => {
-            if (!selectedTier || !selectedMode) {
+            if (selectedVariant === null || selectedMode === null) {
               return;
             }
-            onStart({ tier: selectedTier, mode: selectedMode, keyMap });
+            onStart({ variant: selectedVariant, mode: selectedMode, keyMap });
           }}
         >
           Start Session
