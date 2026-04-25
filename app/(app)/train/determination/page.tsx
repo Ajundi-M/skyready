@@ -2,10 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import {
-  useDTEngine,
-  type DTEngineControls,
-} from '@/lib/determination/useDTEngine';
+import { useDTEngine } from '@/lib/determination/useDTEngine';
 import DTCanvas from '@/components/determination/DTCanvas';
 import DTPreSessionScreen from '@/components/determination/DTPreSessionScreen';
 import DTSessionSummary from '@/components/determination/DTSessionSummary';
@@ -37,21 +34,14 @@ export default function DeterminationPage() {
   const safeTier = tier ?? 1;
   const safeMode = mode ?? 'action';
 
-  // Refs break the circular dependency: callbacks need the engines,
-  // but the engines must be declared before the callbacks that call them.
-  const liveEngineRef = useRef<DTEngineControls | null>(null);
-  const practiceEngineRef = useRef<DTEngineControls | null>(null);
   // Guards handleLiveComplete from firing after the user cancels mid-live.
   // cancel() → finishSession() → onComplete() path would otherwise race with
   // the setPagePhase('preSession') in handleCancel.
   const cancelledRef = useRef(false);
 
-  // ── Callbacks passed to both engines ──────────────────────────────────────
-
-  const handlePracticeComplete = useCallback(() => {
-    setPagePhase('live');
-    liveEngineRef.current?.start();
-  }, []);
+  // ── Callbacks and engine instances ────────────────────────────────────────
+  // Order matters: handleLiveComplete → liveEngine → handlePracticeComplete
+  // → practiceEngine. Each declaration depends on the one above it.
 
   const handleLiveComplete = useCallback((result: DTMetrics) => {
     if (cancelledRef.current) return;
@@ -59,16 +49,7 @@ export default function DeterminationPage() {
     setPagePhase('summary');
   }, []);
 
-  // ── Engine instances — always mounted; hooks cannot be conditional ─────────
-
-  const practiceEngine = useDTEngine({
-    tier: safeTier,
-    mode: safeMode,
-    keyMap,
-    isPractice: true,
-    onComplete: handlePracticeComplete,
-  });
-
+  // Always mounted — hooks cannot be conditional.
   const liveEngine = useDTEngine({
     tier: safeTier,
     mode: safeMode,
@@ -77,10 +58,17 @@ export default function DeterminationPage() {
     onComplete: handleLiveComplete,
   });
 
-  // Keep refs current so callbacks always call the latest engine instance
-  useEffect(() => {
-    practiceEngineRef.current = practiceEngine;
-    liveEngineRef.current = liveEngine;
+  const handlePracticeComplete = useCallback(() => {
+    setPagePhase('live');
+    liveEngine.start();
+  }, [liveEngine]);
+
+  const practiceEngine = useDTEngine({
+    tier: safeTier,
+    mode: safeMode,
+    keyMap,
+    isPractice: true,
+    onComplete: handlePracticeComplete,
   });
 
   // ── Handlers ──────────────────────────────────────────────────────────────
@@ -107,15 +95,15 @@ export default function DeterminationPage() {
       setSessionId(id);
       setShowEscHint(true);
       setPagePhase('practice');
-      practiceEngineRef.current?.start();
+      practiceEngine.start();
     },
-    [],
+    [practiceEngine],
   );
 
   const handleCancel = useCallback(() => {
     cancelledRef.current = true;
-    if (pagePhase === 'practice') practiceEngineRef.current?.cancel();
-    if (pagePhase === 'live') liveEngineRef.current?.cancel();
+    if (pagePhase === 'practice') practiceEngine.cancel();
+    if (pagePhase === 'live') liveEngine.cancel();
     setPagePhase('preSession');
     setSessionId(null);
     // Clear the flag after the current call stack so any synchronous
@@ -124,7 +112,7 @@ export default function DeterminationPage() {
     setTimeout(() => {
       cancelledRef.current = false;
     }, 100);
-  }, [pagePhase]);
+  }, [pagePhase, practiceEngine, liveEngine]);
 
   const handleSave = useCallback(async () => {
     if (!sessionId || !metrics) return;
