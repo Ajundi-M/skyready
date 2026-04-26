@@ -184,16 +184,18 @@ export default function DTCanvas({
         ctx.lineWidth = sw;
         ctx.stroke();
 
-        // Label below pedal
-        ctx.font = 'bold 11px Arial';
-        ctx.fillStyle = labelCol;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'top';
-        ctx.fillText(
-          `${label} · ${keyLabel === ' ' ? 'SPC' : keyMap[stimulus].toUpperCase()}`,
-          pedX + pedalW / 2,
-          pedalY + pedalH + ledgeH + 8,
-        );
+        // Label below pedal (key binding only in action mode)
+        if (mode === 'action') {
+          ctx.font = 'bold 11px Arial';
+          ctx.fillStyle = labelCol;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'top';
+          ctx.fillText(
+            `${label} · ${keyLabel === ' ' ? 'SPC' : keyMap[stimulus].toUpperCase()}`,
+            pedX + pedalW / 2,
+            pedalY + pedalH + ledgeH + 8,
+          );
+        }
       }
 
       // Left pedal — foot_left
@@ -247,17 +249,19 @@ export default function DTCanvas({
         }
         ctx.restore();
 
-        // --- key label inside circle ---
-        const keyVal = keyMap[c.stimulus] ?? '';
-        const keyDisplay = keyVal === ' ' ? 'SPC' : keyVal.toUpperCase();
-        ctx.save();
-        ctx.globalAlpha = active ? 1.0 : 0.5;
-        ctx.font = 'bold 14px Arial';
-        ctx.fillStyle = active ? '#ffffff' : colour;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(keyDisplay, c.x, c.y);
-        ctx.restore();
+        // --- key label inside circle (action mode only) ---
+        if (mode === 'action') {
+          const keyVal = keyMap[c.stimulus] ?? '';
+          const keyDisplay = keyVal === ' ' ? 'SPC' : keyVal.toUpperCase();
+          ctx.save();
+          ctx.globalAlpha = active ? 1.0 : 0.5;
+          ctx.font = 'bold 14px Arial';
+          ctx.fillStyle = active ? '#ffffff' : colour;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(keyDisplay, c.x, c.y);
+          ctx.restore();
+        }
       }
 
       // ── 4. TONE STIMULI ────────────────────────────────────────────────────────
