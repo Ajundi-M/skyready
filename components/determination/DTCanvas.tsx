@@ -309,7 +309,7 @@ export default function DTCanvas({
       }
 
       // ── 7. KEY INDICATOR PILLS (practice phase only, bottom center) ────────────
-      if (engineState.phase === 'practice' || engineState.phase === 'live') {
+      if (engineState.phase === 'practice') {
         const pillStimuli = activeStimuli.filter(
           (s) => !DT_STIMULUS_IS_AUDIO[s],
         );
@@ -340,7 +340,7 @@ export default function DTCanvas({
         let pillX = cx - totalW / 2;
         const pillY = logicalHeight - 44;
 
-        ctx.globalAlpha = engineState.phase === 'practice' ? 1.0 : 0.2;
+        ctx.globalAlpha = 1.0;
 
         for (const pill of pills) {
           const pY = pillY - pill.pillH;
