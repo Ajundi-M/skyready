@@ -218,6 +218,7 @@ export default function DeterminationPage() {
           onKeyMapChange={setKeyMap}
         />
         <DTKeyRemapModal
+          key={remapOpen ? 'open' : 'closed'}
           open={remapOpen}
           activeVariant={safeVariant}
           initialKeyMap={keyMap}
