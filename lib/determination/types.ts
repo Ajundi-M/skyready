@@ -143,14 +143,14 @@ export const DT_TONE_PAN: Partial<Record<DTStimulus, number>> = {
 export type DTKeyMap = Record<DTStimulus, string>;
 
 export const DT_DEFAULT_KEY_MAP: DTKeyMap = {
-  red: 's',
-  blue: 'a',
-  yellow: 'l',
-  green: 'k',
-  foot_left: 'z',
-  foot_right: '/',
-  tone_left: ' ',
-  tone_right: 'enter',
+  red: 'k',
+  blue: 'l',
+  yellow: 'd',
+  green: 's',
+  foot_left: 'f',
+  foot_right: 'j',
+  tone_left: 'g',
+  tone_right: 'h',
 };
 
 // ── Reserved keys that can never be remapped ────────────────────
