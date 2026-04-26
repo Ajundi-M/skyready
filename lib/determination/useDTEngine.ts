@@ -365,6 +365,19 @@ export function useDTEngine(config: DTEngineConfig): DTEngineControls {
       reverseKeyMapRef.current[normalizedKey] = stimulus as DTStimulus;
     }
 
+    // Guard: if the key map has fewer entries than the active stimulus pool,
+    // the preferences have not loaded yet. Abort rather than silently treating
+    // every keypress as an omission.
+    if (
+      Object.keys(reverseKeyMapRef.current).length <
+      activePoolRef.current.length
+    ) {
+      console.warn(
+        '[useDTEngine] start() aborted: keyMap has fewer entries than active stimuli. Preferences may not have loaded yet.',
+      );
+      return;
+    }
+
     audioCtxRef.current = new AudioContext();
 
     keydownHandlerRef.current = (event: KeyboardEvent): void => {
