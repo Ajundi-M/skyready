@@ -181,6 +181,23 @@ export default function DTKeyRemapModal({
                           : localMap[stimulus].toUpperCase()}
                     </button>
                   )}
+
+                  {isActive &&
+                    localMap[stimulus] !== DT_DEFAULT_KEY_MAP[stimulus] && (
+                      <button
+                        type="button"
+                        className="ml-1 text-xs text-muted-foreground hover:text-foreground"
+                        title="Reset to default"
+                        onClick={() => {
+                          setLocalMap((prev) => ({
+                            ...prev,
+                            [stimulus]: DT_DEFAULT_KEY_MAP[stimulus],
+                          }));
+                        }}
+                      >
+                        ↺
+                      </button>
+                    )}
                 </div>
 
                 {rowErrors[stimulus] && (
@@ -201,6 +218,8 @@ export default function DTKeyRemapModal({
               setLocalMap({ ...DT_DEFAULT_KEY_MAP });
               clearAllErrors();
               setListening(null);
+              onSave({ ...DT_DEFAULT_KEY_MAP });
+              onClose();
             }}
           >
             Reset to defaults
