@@ -151,13 +151,13 @@ function ModulePanel({ module: m }: { module: ModuleData }) {
               />
               <XAxis
                 dataKey="date"
-                tick={{ fontSize: 11, fill: 'hsl(var(--foreground) / 0.6)' }}
+                tick={{ fontSize: 11, fill: '#94a3b8' }}
                 tickLine={false}
                 axisLine={false}
               />
               <YAxis
                 yAxisId="left"
-                tick={{ fontSize: 11, fill: 'hsl(var(--foreground) / 0.6)' }}
+                tick={{ fontSize: 11, fill: '#94a3b8' }}
                 tickLine={false}
                 axisLine={false}
                 width={36}
@@ -165,7 +165,7 @@ function ModulePanel({ module: m }: { module: ModuleData }) {
               <YAxis
                 yAxisId="right"
                 orientation="right"
-                tick={{ fontSize: 11, fill: 'hsl(var(--foreground) / 0.6)' }}
+                tick={{ fontSize: 11, fill: '#94a3b8' }}
                 tickLine={false}
                 axisLine={false}
                 width={36}
