@@ -375,7 +375,9 @@ export default function DTCanvas({
     const observer = new ResizeObserver(() => {
       draw();
     });
-    observer.observe(canvasRef.current!);
+    if (canvasRef.current) {
+      observer.observe(canvasRef.current);
+    }
     return () => {
       observer.disconnect();
     };
