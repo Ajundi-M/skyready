@@ -9,7 +9,8 @@ const dtStimulusSchema = z.enum([
   'green',
   'foot_left',
   'foot_right',
-  'tone',
+  'tone_left',
+  'tone_right',
 ]);
 
 const schema = z.object({

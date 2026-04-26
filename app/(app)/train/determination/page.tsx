@@ -151,7 +151,7 @@ export default function DeterminationPage() {
     router.push('/dashboard');
   }, [router]);
 
-  const handleKeyMapSave = useCallback((newMap: DTKeyMap) => {
+  const handleKeyMapSave = useCallback((newMap: DTKeyMap): void => {
     setKeyMap(newMap);
     setRemapOpen(false);
     // Fire-and-forget — persist preference without blocking the UI

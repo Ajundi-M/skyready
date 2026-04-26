@@ -51,6 +51,7 @@ export default function DTKeyRemapModal({
   const [rowErrors, setRowErrors] = useState<Record<DTStimulus, string | null>>(
     createEmptyRowErrors(),
   );
+  const [saveError, setSaveError] = useState<string | null>(null);
   const preListenKey = useRef<string>('');
 
   const clearError = (stimulus: DTStimulus) => {
@@ -205,19 +206,27 @@ export default function DTKeyRemapModal({
             Reset to defaults
           </Button>
 
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={onClose}>
-              Cancel
-            </Button>
-            <Button
-              disabled={listening !== null}
-              onClick={() => {
-                onSave(localMap);
-                onClose();
-              }}
-            >
-              Save
-            </Button>
+          <div className="flex flex-col items-end gap-2">
+            {saveError && <p className="text-xs text-red-500">{saveError}</p>}
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={onClose}>
+                Cancel
+              </Button>
+              <Button
+                disabled={listening !== null}
+                onClick={() => {
+                  setSaveError(null);
+                  try {
+                    onSave(localMap);
+                    onClose();
+                  } catch {
+                    setSaveError('Failed to save. Please try again.');
+                  }
+                }}
+              >
+                Save
+              </Button>
+            </div>
           </div>
         </DialogFooter>
       </DialogContent>
