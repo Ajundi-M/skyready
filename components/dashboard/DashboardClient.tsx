@@ -147,7 +147,7 @@ function ModulePanel({ module: m }: { module: ModuleData }) {
             >
               <CartesianGrid
                 strokeDasharray="3 3"
-                stroke="rgba(255,255,255,0.06)"
+                stroke="hsl(var(--border))"
               />
               <XAxis
                 dataKey="date"
@@ -193,7 +193,7 @@ function ModulePanel({ module: m }: { module: ModuleData }) {
                 yAxisId="right"
                 type="monotone"
                 dataKey={secondaryKey}
-                stroke="rgba(255,255,255,0.35)"
+                stroke="hsl(var(--muted-foreground))"
                 strokeWidth={1.5}
                 strokeDasharray="4 2"
                 dot={{ r: 2 }}
