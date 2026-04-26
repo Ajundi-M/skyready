@@ -220,7 +220,7 @@ export function useDTEngine(config: DTEngineConfig): DTEngineControls {
       audioCtxRef.current = null;
     }
 
-    for (const stimulus of DT_STIMULI) {
+    for (const stimulus of activePoolRef.current) {
       const stimulusRt = perStimulusRtRef.current[stimulus];
       const meanRt =
         stimulusRt.length > 0
@@ -349,7 +349,7 @@ export function useDTEngine(config: DTEngineConfig): DTEngineControls {
     omissionsRef.current = 0;
     delayedRef.current = 0;
 
-    for (const stimulus of DT_STIMULI) {
+    for (const stimulus of activePoolRef.current) {
       perStimulusRef.current[stimulus] = {
         correct: 0,
         errors: 0,
