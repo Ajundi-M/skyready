@@ -193,11 +193,11 @@ function ModulePanel({ module: m }: { module: ModuleData }) {
                 yAxisId="right"
                 type="monotone"
                 dataKey={secondaryKey}
-                stroke="hsl(var(--muted-foreground))"
-                strokeWidth={1.5}
-                strokeDasharray="4 2"
-                dot={{ r: 2 }}
-                activeDot={{ r: 4 }}
+                stroke={`${m.config.accent}99`}
+                strokeWidth={2}
+                strokeDasharray="4 3"
+                dot={{ r: 2, fill: `${m.config.accent}99` }}
+                activeDot={{ r: 4, fill: m.config.accent }}
                 connectNulls
               />
             </LineChart>
