@@ -94,7 +94,7 @@ export default function DTCanvas({
       }
 
       // ── HELPER: draw opacity ─────────────────────────────────────────────────
-      // Active = 1.0, Dimmed = 0.18
+      // Active = 1.0, Dimmed = 0.45
       function stimulusAlpha(stimulus: DTStimulus): number {
         return isActive(stimulus) ? 1.0 : 0.45;
       }
