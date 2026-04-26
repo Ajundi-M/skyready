@@ -214,6 +214,8 @@ export default function DeterminationPage() {
         <DTPreSessionScreen
           onStart={handleStart}
           onEditKeys={() => setRemapOpen(true)}
+          keyMap={keyMap}
+          onKeyMapChange={setKeyMap}
         />
         <DTKeyRemapModal
           open={remapOpen}

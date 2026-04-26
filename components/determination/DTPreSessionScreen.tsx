@@ -27,6 +27,8 @@ type DTPreSessionScreenProps = {
     keyMap: DTKeyMap;
   }) => void;
   onEditKeys: () => void;
+  keyMap: DTKeyMap;
+  onKeyMapChange: (newMap: DTKeyMap) => void;
 };
 
 type PreferencesResponse = {
@@ -40,12 +42,13 @@ type PreferencesResponse = {
 export default function DTPreSessionScreen({
   onStart,
   onEditKeys,
+  keyMap,
+  onKeyMapChange,
 }: DTPreSessionScreenProps) {
   const [selectedVariant, setSelectedVariant] = useState<DTVariant | null>(
     null,
   );
   const [selectedMode, setSelectedMode] = useState<DTMode | null>(null);
-  const [keyMap, setKeyMap] = useState<DTKeyMap>(DT_DEFAULT_KEY_MAP);
   const [loadingPrefs, setLoadingPrefs] = useState<boolean>(true);
   const [learnMoreOpen, setLearnMoreOpen] = useState<boolean>(false);
 
@@ -72,7 +75,7 @@ export default function DTPreSessionScreen({
           setSelectedMode(preferences.dt_last_mode);
         }
         if (preferences.dt_keys) {
-          setKeyMap({ ...DT_DEFAULT_KEY_MAP, ...preferences.dt_keys });
+          onKeyMapChange({ ...DT_DEFAULT_KEY_MAP, ...preferences.dt_keys });
         }
       } catch {
         // Ignore preference fetch errors and keep defaults.
