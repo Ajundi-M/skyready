@@ -140,7 +140,7 @@ function ModulePanel({ module: m }: { module: ModuleData }) {
           <p className="text-xs font-medium text-muted-foreground mb-3">
             Progress over time
           </p>
-          <ResponsiveContainer width="100%" height={220}>
+          <ResponsiveContainer width="100%" height={220} minWidth={0}>
             <LineChart
               data={chartData}
               margin={{ top: 4, right: 16, left: 0, bottom: 4 }}
@@ -188,6 +188,7 @@ function ModulePanel({ module: m }: { module: ModuleData }) {
                 dot={{ r: 3, fill: m.config.accent }}
                 activeDot={{ r: 5 }}
                 connectNulls
+                isAnimationActive={false}
               />
               <Line
                 yAxisId="right"
@@ -199,6 +200,7 @@ function ModulePanel({ module: m }: { module: ModuleData }) {
                 dot={{ r: 2, fill: `${m.config.accent}99` }}
                 activeDot={{ r: 4, fill: m.config.accent }}
                 connectNulls
+                isAnimationActive={false}
               />
             </LineChart>
           </ResponsiveContainer>
