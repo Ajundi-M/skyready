@@ -227,35 +227,37 @@ export default function DTCanvas({
       ];
 
       for (const c of circles) {
-        if (!activeStimuli.includes(c.stimulus)) continue;
+        if (!activeStimuli.includes(c.stimulus as never)) continue;
 
         const alpha = stimulusAlpha(c.stimulus);
         const colour = DT_STIMULUS_COLOUR[c.stimulus];
         const active = isActive(c.stimulus);
 
+        // --- circle fill ---
+        ctx.save();
         ctx.globalAlpha = alpha;
         ctx.beginPath();
         ctx.arc(c.x, c.y, c.r, 0, Math.PI * 2);
         ctx.fillStyle = colour;
         ctx.fill();
-
         if (active) {
           ctx.strokeStyle = colour;
           ctx.lineWidth = 2.5;
           ctx.stroke();
         }
-        ctx.globalAlpha = 1.0;
+        ctx.restore();
 
-        // Key label inside circle
+        // --- key label inside circle ---
         const keyVal = keyMap[c.stimulus] ?? '';
         const keyDisplay = keyVal === ' ' ? 'SPC' : keyVal.toUpperCase();
+        ctx.save();
         ctx.globalAlpha = active ? 1.0 : 0.5;
         ctx.font = 'bold 14px Arial';
         ctx.fillStyle = active ? '#ffffff' : colour;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(keyDisplay, c.x, c.y);
-        ctx.globalAlpha = 1.0;
+        ctx.restore();
       }
 
       // ── 4. TONE STIMULI ────────────────────────────────────────────────────────
