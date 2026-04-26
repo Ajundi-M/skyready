@@ -318,6 +318,20 @@ export function useDTEngine(config: DTEngineConfig): DTEngineControls {
       snapshotState();
       rafHandleRef.current = requestAnimationFrame(tickRef.current);
     };
+
+    const handleVisibilityChange = (): void => {
+      if (document.visibilityState === 'hidden') {
+        // Reset the prev timestamp so that when the tab becomes visible again,
+        // the first delta is calculated from the moment of return — not from
+        // the moment before the tab was hidden.
+        prevTimestampRef.current = null;
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, [
     applyAdaptivePenalty,
     config.mode,
